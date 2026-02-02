@@ -1,0 +1,14 @@
+// @use "bulma/sass" with ();
+@use "bulma/sass";
+@use "bulma/sass/utilities/mixins";
+@use "./base" as BASE;
+
+@include mixins.desktop {
+  #app .#{BASE.$bodyCn}>* {
+    transform: translateX(BASE.$sideNavWidth);
+  }
+
+  #app .#{BASE.$sideNavCn}>* {
+    transform: translateX(0);
+  }
+}

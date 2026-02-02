@@ -1,0 +1,28 @@
+{
+  "name": "clm-stats.github.io",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/clm-stats/clm-stats.github.io#readme",
+  "bugs": {
+    "url": "https://github.com/clm-stats/clm-stats.github.io/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/clm-stats/clm-stats.github.io.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@parcel/transformer-sass": "^2.16.4",
+    "bulma": "^1.0.4",
+    "classnames": "^2.5.1",
+    "parcel": "^2.16.4",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "sass": "^1.97.3"
+  }
+}

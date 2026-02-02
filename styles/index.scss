@@ -1,0 +1,54 @@
+// @use "bulma/sass" with ();
+@use "bulma/sass";
+@use "bulma/sass/utilities/mixins";
+@use "./base" as BASE;
+
+.scroll {
+  overflow: scroll;
+}
+
+.dz-docs-body {
+    position: relative;
+}
+
+.dz-docs-body>* {
+    max-width: calc(100% - BASE.$sideNavWidth);
+    transition: transform 0.5s ease-in-out;
+    transform: translateX(0);
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.dz-docs-body.is-active>* {
+    transform: translateX(BASE.$sideNavWidth);
+}
+
+.dz-docs-side-nav>* {
+    position: absolute;
+    left: 0;
+    height: 100%;
+    width: BASE.$sideNavWidth;
+    transition: transform 0.5s ease-in-out;
+    transform: translateX(-1 * BASE.$sideNavWidth);
+}
+
+.dz-docs-side-nav.is-active>* {
+    transform: translateX(0);
+}
+
+html #app {
+    min-height: calc(100vh);
+    display: flex;
+    flex-direction: column;
+}
+
+html.has-navbar-fixed-top #app {
+    min-height: calc(100vh - var(--bulma-navbar-height));
+}
+
+html #app {
+  code, pre, tt, kbd, samp, .mono {
+    font-family: FiraCode Nerd Font;
+  }
+}
