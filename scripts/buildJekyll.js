@@ -1,6 +1,7 @@
 import { mkdirp } from 'mkdirp'
 import { PureCLMStats } from '../js/CLMStats'
 import timeline from '../js/timeline.json'
+import * as U from '../js/util'
 import { render } from 'preact-render-to-string'
 import { h } from 'preact'
 import fs from 'node:fs';
@@ -10,7 +11,13 @@ fs.rmSync('./docs/index.html');
 
 function mkLayout(urlSeason, urlPage) {
     const urlHref = `http://localhost:8080/${urlSeason}/${urlPage}.html`;
-    const U = () => ({ urlHref });
+    function urlMk({ season, page } = {}) {
+        if (!season) { return '/'; }
+        if (!page) { return `/${season}`; }
+        return `/${season}/${page}`;
+    }
+    function mkPeriodFuture() { return new Promise(); }
+    const U = () => ({ urlHref, urlMk, mkPeriodFuture });
     const appStr = render(h(PureCLMStats, { U }));
     const html = baseHtml.replace('__PRERENDER__', appStr);
     return html;
@@ -42,12 +49,16 @@ for (const period of timeline.periods) {
         fs.writeFileSync('./docs/index.md', mkMd('stats'));
     }
 
-    for (const page of ['stats', 'players', 'compare', 'h2h']) {
+    for (const page of U.PageTypes) {
         const layout = `l-${periodId}-${page}`;
         const layoutPath = `./docs/_layouts/${layout}.html`;
         fs.writeFileSync(layoutPath, mkLayout(season, page));
         mkdirp.sync(`./docs/${season}`);
         const mdPath = `./docs/${season}/${page}.md`;
         fs.writeFileSync(mdPath, mkMd(page));
+        if (page === 'stats') {
+            const mdPath = `./docs/${season}.md`;
+            fs.writeFileSync(mdPath, mkMd(page));
+        }
     }
 }

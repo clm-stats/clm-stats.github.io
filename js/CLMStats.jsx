@@ -1,32 +1,7 @@
 import { createContext } from 'preact';
 import { useContext, useEffect, useState } from 'preact/hooks';
 import cn from 'classnames';
-import _timeline from './timeline.json';
-
-const timeline = { ..._timeline };
-timeline.periods = [..._timeline.periods];
-timeline.periods.sort((p1, p2) => p2.periodId - p1.periodId);
-
-const PERIODS = {}
-
-const PERIOD_ID_BY_SEASON = {}
-const SEASON_BY_PERIOD_ID = {}
-
-for (const period of timeline.periods) {
-  PERIODS[period.periodId] = period;
-  PERIOD_ID_BY_SEASON[period.season] = period.periodId;
-  SEASON_BY_PERIOD_ID[period.periodId] = period.season;
-}
-
-function resolveSeasonStr(str) {
-  return PERIOD_ID_BY_SEASON[str] || timeline.current;
-}
-
-const PAGES = new Set(['stats', 'players', 'compare', 'h2h']);
-
-function resolvePageStr(str) {
-  return str && PAGES.has(str.toLowerCase()) ? str.toLowerCase() : 'stats';
-}
+import * as U from './util';
 
 const pageLoadData = {}
 
@@ -37,16 +12,18 @@ function cnActive(b) { return b ? cnActiveTrue : cnActiveFalse }
 
 class CtxClass {
 
-  constructor(state, setState) {
+  constructor(state, setState, urlMk) {
     this.state = state;
     this.setState = setState;
+    this.urlMk = urlMk;
   }
 
+  get isLoadingPeriod() { return this.state.isLoadingPeriod; }
   get href() { return this.state.href; }
-  get page() { return resolvePageStr(this.state.page); }
-  get season() { return SEASON_BY_PERIOD_ID[this.period]; }
-  get period() { return this.state.period || timeline.current; }
-  get periodTitle() { return PERIODS[this.period].title; }
+  get page() { return U.resolvePageStr(this.state.page); }
+  get season() { return U.getSeason(this.periodId); }
+  get periodId() { return this.state.periodId || U.timeline.current; }
+  get periodTitle() { return U.Period(this.periodId).title; }
 
   get isHamburgerOpen() { return !!this.state.isHamburgerOpen; }
 
@@ -54,14 +31,11 @@ class CtxClass {
 
   get cnBurgerActive() { return cnActive(this.isHamburgerOpen); }
 
-  get cnSideNavActive() { return cnActive(this.isSideNavOpen); }
-
   get orgTree() {
     return this.state['org-tree'] || [];
   }
 
   toggleHamburger() { this.mergeState({ isHamburgerOpen: !this.isHamburgerOpen }); }
-  toggleSideNav() { this.mergeState({ isSideNavOpen: !this.isSideNavOpen }); }
 
   mergeState(props) {
     this.setState({ ...this.state, ...props })
@@ -69,11 +43,17 @@ class CtxClass {
 
 
   hPeriod(periodId) {
-    return `/${SEASON_BY_PERIOD_ID[periodId]}/${this.page}`;
+    return this.urlMk({ season: U.getSeason(periodId), page: this.page });
   }
 
   hPage(page) {
-    return `/${this.season}/${page}`;
+    return this.urlMk({ season: this.season, page });
+  }
+
+  character(playerIdent) {
+    const { players } = this.state.period;
+    const player = players[playerIdent] || {};
+    return U.lkupChar(player.name);
   }
 }
 
@@ -93,7 +73,39 @@ function NavBarLink({ href, children, iht = false, ia = false }) {
 }
 
 function NF(s, marginInlineEnd = 0) {
-  return <span style={{ marginInlineEnd }} className='mono'>{s}</span>
+  return (
+    <span
+      style={{
+        marginInlineEnd,
+        display: 'inline-block',
+        position: 'relative',
+      }}
+    >
+      <span
+        style={{ visibility: 'hidden' }}
+      >
+        {s}
+      </span>
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          height: '100%',
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <span
+          className='mono'
+        >
+          {s}
+        </span>
+      </div>
+    </span>
+  )
 }
 
 function Search() {
@@ -152,18 +164,25 @@ function Periods() {
     <div style={{ position: 'relative' }} className='dropdown is-right is-hoverable'>
       <div className="dropdown-trigger">
         <button className="button" aria-haspopup="true" aria-controls="dropdown-menu4">
-          <span className='has-text-info'>
+          <span className='has-text-info is-hidden-touch'>
             {X.periodTitle}
-          </span>&nbsp;&nbsp;&nbsp;{NF('')}
+          </span>
+          <span className='has-text-info is-hidden-desktop'>
+            {NF('')}
+          </span>
+          &nbsp;&nbsp;&nbsp;
+          <span className='has-text-info'>
+            {NF('')}
+          </span>
         </button>
       </div>
       <div className="dropdown-menu" id="dropdown-menu4" role="menu">
         <div className="dropdown-content">
-          {timeline.periods.map(({ periodId, title }) => (
+          {U.timeline.periods.map(({ periodId, title }) => (
             <a
               key={periodId}
               href={X.hPeriod(periodId)}
-              className={cn('dropdown-item', { 'is-active': periodId === X.period })}
+              className={cn('dropdown-item', { 'is-active': periodId === X.periodId })}
             >
               {title}
             </a>
@@ -180,7 +199,7 @@ function MenuBar() {
   return (
     <nav className='navbar is-fixed-top container is-max-widescreen'>
       <div className='navbar-brand is-flex-grow-1'>
-        <NavBarLink href={`/?period=${X.period - 1}`}> <img src="/favicon.ico" /> CLM </NavBarLink>
+        <NavBarLink href="https://chicagomelee.com/"> <img src="/favicon.ico" /> CLM </NavBarLink>
         <NavBarLink ia={X.page === 'stats'} iht={true} href={X.hPage('stats')}> {NF('')}Stats</NavBarLink>
         <NavBarLink ia={X.page === 'players'} iht={true} href={X.hPage('players')}> {NF('')}Players</NavBarLink>
         <NavBarLink ia={X.page === 'compare'} iht={true} href={X.hPage('compare')}> {NF('')}Compare</NavBarLink>
@@ -217,36 +236,178 @@ function MenuBar() {
   )
 }
 
+function StatsTable() {
+  const X = useCtx();
+
+  const skelEl = (
+    <tr>
+      <td>
+        <h2 className='subtitle is-skeleton' >1</h2>
+      </td>
+      <td className='is-flex is-flex-direction-row'>
+        <span className='icon is-skeleton' >1</span>
+        <div className='mx-2' />
+        <div className='skeleton-lines is-flex-grow-1'> <div /><div /> </div>
+      </td>
+      <td>
+        <div className='skeleton-lines is-flex-grow-1'> <div /> </div>
+      </td>
+      <td>
+        <div className='skeleton-lines is-flex-grow-1'> <div /> </div>
+      </td>
+      <td>
+        <div className='skeleton-lines is-flex-grow-1'> <div /> </div>
+      </td>
+      <td>
+        <div className='skeleton-lines is-flex-grow-1'> <div /> <div /> </div>
+      </td>
+    </tr>
+  );
+  const skel = (
+    <tbody>{skelEl}{skelEl}{skelEl}{skelEl}{skelEl}{skelEl}{skelEl}</tbody>
+  )
+
+  const el = (X.isLoadingPeriod ? (() => skel) : (() => {
+    const { players, ranks, events } = X.state.period;
+    const rows = ranks.map((rank) => {
+      const player = players[rank.playerIdent];
+      const character = X.character(rank.playerIdent);
+      const event = events[rank.eventId]
+      return (
+        <tr key={rank.playerIdent} >
+          <td
+            className='has-text-weight-extrabold is-size-3 has-text-centered'
+          >
+            <div> {rank.rank || '-'} </div>
+          </td>
+          <td>
+            <a className='is-flex is-flex-direction-row is-align-items-center player-info' href="#">
+              <div
+                href='#'
+              >
+                <img
+                  src={player.image}
+                  alt='profile pic'
+                />
+              </div>
+              <div className='is-flex is-flex-direction-column'>
+                <div className='no_wrap has-text-weight-bold is-size-5'>{player.name}</div>
+                {!player.pronouns ? null : (
+                  <div
+                    className='no_wrap is-size-7'
+                  >
+                    {player.pronouns}
+                  </div>
+                )}
+                {!character ? null : (
+                  <img
+                    style={{ height: '1.25rem', width: '1.25rem' }}
+                    src={`/chars/${character}.png`}
+                  />
+                )}
+              </div>
+            </a>
+          </td>
+          <td className='py-5 nowrap has-text-centered'>{rank.rating}</td>
+          <td className='nowrap has-text-centered'>{rank.wins || 0} - {rank.losses || 0}</td>
+          <td className='nowrap has-text-centered'>{rank.prEvents || 0}</td>
+          <td className=''>
+            <div className='is-flex is-flex-direction-column is-justify-content-center'>
+              <a
+                className='nowrap'
+                href={`https://start.gg/${event.slug}`}
+              >
+                {event.tournamentName}
+              </a>
+              <div className='nowrap'>
+                {rank.placingString} of {event.numEntrants}
+              </div>
+              <div className='nowrap'>
+                date
+              </div>
+            </div>
+          </td>
+        </tr>
+      );
+    });
+    return (
+      <tbody>
+        {rows}
+      </tbody>
+    );
+  }))();
+  return (
+    <div className='is-flex-grow-1 is-flex is-flex-direction-column is-align-items-stretch rel' >
+      <div
+        className='table-container'
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          overflowY: 'scroll',
+        }}
+      >
+        <table
+          className='table'
+        >
+          <thead>
+            <tr>
+              <th className='has-text-centered'>
+                <a href="#">
+                  #&nbsp;{NF('')}
+                </a>
+              </th>
+              <th>Player</th>
+              <th className='has-text-centered'>Elo</th>
+              <th className='has-text-centered'>W-L</th>
+              <th className='has-text-centered'>PR Events</th>
+              <th>Last Event</th>
+            </tr>
+          </thead>
+          {el}
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function Body() {
   const X = useCtx();
   return (
-    <div className={cn('dz-docs-body', X.cnSideNavActive)} >
-      <div className='section'>
-        <div className='container'>
-          BODY
-        </div>
+    <div className='section p-0 is-flex-grow-1 is-flex is-flex-direction-column'>
+      <div className='container is-flex-grow-1 is-flex is-flex-direction-column'>
+        <StatsTable />
       </div>
     </div>
   )
 }
 
-export function PureCLMStats({ U }) {
-  const { urlHref } = U();
+export function PureCLMStats(props) {
+  const { urlHref, urlMk, mkPeriodFuture } = props.U();
   const hrefPath = (new URL(urlHref)).pathname;
-  const parts = (/^\/([a-z0-9\-]+)\/([a-z0-9]+)(\.html)?$/).exec(hrefPath.toLowerCase());
-  const urlPeriod = resolveSeasonStr((parts || [])[1]);
-  const urlPage = resolvePageStr((parts || [])[2]);
+  const parts = (/^\/([a-z0-9_\-]+)\/([a-z0-9]+)(\.html)?$/).exec(hrefPath.toLowerCase());
+  const urlPeriod = U.resolveSeasonStr((parts || [])[1]);
+  const urlPage = U.resolvePageStr((parts || [])[2]);
   // const urlPeriod, urlPage, 
   pageLoadData.page = urlPage;
-  pageLoadData.period = urlPeriod;
+  pageLoadData.periodId = urlPeriod;
   pageLoadData.href = urlHref;
+  pageLoadData.isLoadingPeriod = true;
   const [state, setState] = useState({ ...pageLoadData });
 
-  const ctx = new CtxClass(state, setState)
+  const ctx = new CtxClass(state, setState, urlMk);
 
   useEffect(() => {
-    if (urlPeriod !== ctx.period) {
-      ctx.mergeState({ period: urlPeriod })
+    mkPeriodFuture()
+      .then((period) => ctx.mergeState({ period, isLoadingPeriod: false }))
+      .catch((error) => ctx.mergeState({ error }))
+  }, [])
+
+  useEffect(() => {
+    if (urlPeriod !== ctx.periodId) {
+      ctx.mergeState({ periodId: urlPeriod })
     }
   }, [urlPeriod]);
   useEffect(() => {
@@ -262,7 +423,7 @@ export function PureCLMStats({ U }) {
 
   return (
     <Ctx.Provider value={ctx}>
-      <div className='container box is-max-widescreen'>
+      <div className='container px-0 box is-max-widescreen is-flex is-flex-direction-column'>
         <MenuBar />
         <Body />
       </div>
@@ -273,7 +434,15 @@ export function PureCLMStats({ U }) {
 export default function CLMStats() {
   function U() {
     const urlHref = window.location.href;
-    return { urlHref }
+    function mkPeriodFuture() {
+      return window.periodFuture;
+    }
+    function urlMk({ season, page } = {}) {
+      if (!season) { return '/'; }
+      if (!page) { return `/${season}`; }
+      return `/${season}/${page}`;
+    }
+    return { urlHref, urlMk, mkPeriodFuture }
   }
   return <PureCLMStats U={U} />
 }

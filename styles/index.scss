@@ -13,7 +13,7 @@
 
     input,
     button {
-        max-width: min(calc(90vw - 18rem), 200px);
+        max-width: min(calc(90vw - 17rem), 200px);
         border-left-width: 0px;
     }
 }
@@ -94,15 +94,170 @@ html #app .container {
             padding-left: 0.75rem;
             padding-right: 0.75rem;
         }
+
+        table.table {
+            max-width: 100%;
+        }
     }
 }
 
 html #app {
+    .rel {
+        position: relative !important;
+    }
 
     .navbar-item,
     .navbar-link {
         &.is-selected {
             color: hsl(var(--bulma-link-h), var(--bulma-link-s), var(--bulma-link-invert-l));
         }
+    }
+
+    >.container {
+        padding-bottom: 0 !important;
+        padding-top: calc(var(--bulma-navbar-height) + 2px) !important;
+    }
+}
+
+html #app tr td {
+    vertical-align: middle;
+}
+
+html #app>div {
+    padding-top: 2rem;
+}
+
+html #app .player-info {
+    >:first-child {
+        min-height: 50px;
+        max-height: 50px;
+        min-width: 50px;
+        max-width: 50px;
+        height: 50px;
+        width: 50px;
+        border-radius: 50px;
+        overflow: hidden;
+        position: relative;
+        filter: drop-shadow(0 0 0.125rem var(--bulma-border));
+
+        img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            object-fit: cover;
+        }
+    }
+
+    >:last-child {
+        margin-left: 1rem;
+        overflow: hidden;
+
+        >div {
+            color: var(--bulma-table-color);
+        }
+
+        >div:first-child {
+            color: var(--bulma-link);
+            margin-bottom: -.25rem;
+        }
+    }
+
+    &:hover {
+        >:first-child {
+            filter: drop-shadow(0 0 0.125rem var(--bulma-link-dark-invert));
+        }
+
+        >:last-child {
+            >div:first-child {
+                text-decoration: underline;
+            }
+        }
+    }
+}
+
+html #app .nowrap {
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+}
+
+html #app table.table {
+    table-layout: fixed;
+    position: relative;
+    border-collapse: separate;
+    border-spacing: 0;
+    background-color: var(--bulma-scheme-main-bis);
+
+    th {
+        position: sticky;
+        top: 0rem;
+        z-index: 1;
+        background-color: var(--bulma-scheme-main-ter);
+        border-bottom: 2px solid var(--bulma-border);
+    }
+
+    td,
+    th {
+        width: 20%;
+        white-space: nowrap;
+    }
+
+    td:nth-child(2),
+    th:nth-child(2) {
+        width: auto !important;
+    }
+
+    td:first-child {
+        max-width: 5rem;
+        min-width: 5rem;
+        position: relative;
+
+        >div {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    }
+
+    td:last-child {
+        position: relative;
+        min-width: 16rem;
+
+        >div {
+            position: absolute;
+            top: 0;
+            left: 0.5rem;
+            width: calc(100% - 1.5rem);
+            height: 100%;
+        }
+    }
+
+    /*
+    td:last-child,
+    th:last-child {
+        width: 40%;
+        overflow: hidden;
+        position: relative;
+        / *min-width: max(12rem, 40%);* /
+
+        >div {
+            position: absolute;
+            top: 0;
+            left: 0.5rem;
+            width: calc(100% - 1.5rem);
+            height: 100%;
+        }
+    }
+    */
+
+    th:last-child {
+        position: sticky;
     }
 }
