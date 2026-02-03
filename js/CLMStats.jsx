@@ -69,11 +69,11 @@ class CtxClass {
 
 
   hPeriod(periodId) {
-    return `/p/${SEASON_BY_PERIOD_ID[periodId]}/${this.page}`;
+    return `/${SEASON_BY_PERIOD_ID[periodId]}/${this.page}`;
   }
 
   hPage(page) {
-    return `/p/${this.season}/${page}`;
+    return `/${this.season}/${page}`;
   }
 }
 
