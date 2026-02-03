@@ -287,6 +287,7 @@ function StatsTable() {
               >
                 <img
                   src={player.image}
+                  loading="lazy"
                   alt='profile pic'
                 />
               </div>
