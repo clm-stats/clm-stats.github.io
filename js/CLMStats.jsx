@@ -64,23 +64,11 @@ class CtxClass {
 
 
   hPeriod(periodId) {
-    const url = new URL(this.href);
-    if (periodId === timeline.current) {
-      url.searchParams.delete('period');
-    } else {
-      url.searchParams.set('period', `${periodId}`);
-    }
-    return url.toString().replace(url.origin, '');
+    return `/p/${periodId}/${this.page}.html`;
   }
 
   hPage(page) {
-    const url = new URL(this.href);
-    if (page === 'stats') {
-      url.searchParams.delete('page');
-    } else {
-      url.searchParams.set('page', page);
-    }
-    return url.toString().replace(url.origin, '');
+    return `/p/${this.period}/${page}.html`;
   }
 }
 
@@ -291,7 +279,12 @@ function Body() {
 }
 
 export function PureCLMStats({ U }) {
-  const { urlPeriod, urlPage, urlHref } = U();
+  const { urlHref } = U();
+  const hrefPath = (new URL(urlHref)).pathname;
+  const parts = (/^\/p\/(\d+)\/([a-zA-Z]+)(\.html)?$/).exec(hrefPath.toLowerCase());
+  const urlPeriod = resolvePeriodIdStr((parts || [])[1]);
+  const urlPage = resolvePageStr((parts || [])[2]);
+  // const urlPeriod, urlPage, 
   pageLoadData.page = urlPage;
   pageLoadData.period = urlPeriod;
   pageLoadData.href = urlHref;

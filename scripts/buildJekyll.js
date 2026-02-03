@@ -9,7 +9,7 @@ const baseHtml = fs.readFileSync('./docs/index.html', 'utf-8');
 fs.rmSync('./docs/index.html');
 
 function mkLayout(urlPeriod, urlPage) {
-    const urlHref = 'http://localhost:8080/';
+    const urlHref = `http://localhost:8080/p/${urlPeriod}/${urlPage}.html`;
     const U = () => ({ urlHref, urlPage, urlPeriod });
     const appStr = render(h(PureCLMStats, { U }));
     const html = baseHtml.replace('__PRERENDER__', appStr);
@@ -17,7 +17,7 @@ function mkLayout(urlPeriod, urlPage) {
 }
 
 mkdirp.sync('./docs/_layouts/');
-mkdirp.sync('./docs/periods/');
+mkdirp.sync('./docs/p/');
 
 for (const period of timeline.periods) {
     const periodId = period.periodId;
@@ -45,8 +45,8 @@ for (const period of timeline.periods) {
         const layout = `l-${periodId}-${page}`;
         const layoutPath = `./docs/_layouts/${layout}.html`;
         fs.writeFileSync(layoutPath, mkLayout(periodId, page));
-        mkdirp.sync(`./docs/periods/${periodId}`);
-        const mdPath = `./docs/periods/${periodId}/${page}.md`;
+        mkdirp.sync(`./docs/p/${periodId}`);
+        const mdPath = `./docs/p/${periodId}/${page}.md`;
         fs.writeFileSync(mdPath, mkMd(page));
     }
 }
