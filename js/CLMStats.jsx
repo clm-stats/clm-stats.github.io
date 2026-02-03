@@ -24,7 +24,7 @@ function resolvePageStr(str) {
   return str && PAGES.has(str.toLowerCase()) ? str.toLowerCase() : 'stats';
 }
 
-const pageLoadData = (window && window.pageLoadData) || {}
+const pageLoadData = {}
 
 const cnActiveTrue = { 'is-active': true };
 const cnActiveFalse = { 'is-active': false };
@@ -38,6 +38,7 @@ class CtxClass {
     this.setState = setState;
   }
 
+  get href() { return this.state.href; }
   get page() { return resolvePageStr(this.state.page); }
   get period() { return this.state.period || timeline.current; }
   get periodTitle() { return PERIODS[this.period].title; }
@@ -59,6 +60,27 @@ class CtxClass {
 
   mergeState(props) {
     this.setState({ ...this.state, ...props })
+  }
+
+
+  hPeriod(periodId) {
+    const url = new URL(this.href);
+    if (periodId === timeline.current) {
+      url.searchParams.delete('period');
+    } else {
+      url.searchParams.set('period', `${periodId}`);
+    }
+    return url.toString().replace(url.origin, '');
+  }
+
+  hPage(page) {
+    const url = new URL(this.href);
+    if (page === 'stats') {
+      url.searchParams.delete('page');
+    } else {
+      url.searchParams.set('page', page);
+    }
+    return url.toString().replace(url.origin, '');
   }
 }
 
@@ -187,7 +209,7 @@ function Periods() {
           {timeline.periods.map(({ periodId, title }) => (
             <a
               key={periodId}
-              href={hPeriod(periodId)}
+              href={X.hPeriod(periodId)}
               className={cn('dropdown-item', { 'is-active': periodId === X.period })}
             >
               {title}
@@ -199,36 +221,17 @@ function Periods() {
   );
 }
 
-function hPeriod(periodId) {
-  const url = new URL(window.location.href);
-  if (periodId === timeline.current) {
-    url.searchParams.delete('period');
-  } else {
-    url.searchParams.set('period', `${periodId}`);
-  }
-  return url.toString().replace(url.origin, '');
-}
-
-function hPage(page) {
-  const url = new URL(window.location.href);
-  if (page === 'stats') {
-    url.searchParams.delete('page');
-  } else {
-    url.searchParams.set('page', page);
-  }
-  return url.toString().replace(url.origin, '');
-}
-
 function MenuBar() {
   const X = useCtx();
+
   return (
     <nav className='navbar is-fixed-top container is-max-widescreen'>
       <div className='navbar-brand is-flex-grow-1'>
         <NavBarLink href={`/?period=${X.period - 1}`}> <img src="/favicon.ico" /> CLM </NavBarLink>
-        <NavBarLink ia={X.page === 'stats'} iht={true} href={hPage('stats')}> {NF('')}Stats</NavBarLink>
-        <NavBarLink ia={X.page === 'player'} iht={true} href={hPage('player')}> {NF('')}Players</NavBarLink>
-        <NavBarLink ia={X.page === 'compare'} iht={true} href={hPage('compare')}> {NF('')}Compare</NavBarLink>
-        <NavBarLink ia={X.page === 'h2h'} iht={true} href={hPage('h2h')}> {NF('󰋁')}H2H</NavBarLink>
+        <NavBarLink ia={X.page === 'stats'} iht={true} href={X.hPage('stats')}> {NF('')}Stats</NavBarLink>
+        <NavBarLink ia={X.page === 'player'} iht={true} href={X.hPage('player')}> {NF('')}Players</NavBarLink>
+        <NavBarLink ia={X.page === 'compare'} iht={true} href={X.hPage('compare')}> {NF('')}Compare</NavBarLink>
+        <NavBarLink ia={X.page === 'h2h'} iht={true} href={X.hPage('h2h')}> {NF('󰋁')}H2H</NavBarLink>
         <div
           className='navbar-item navitem-right'
           style={{ marginInlineStart: 'auto' }}
@@ -251,10 +254,10 @@ function MenuBar() {
       </div>
       <div style={{ flex: 0 }} className={cn('navbar-menu', X.cnBurgerActive)} >
         <div className='navbar-start is-hidden-desktop'>
-          <NavBarLink ia={X.page === 'stats'} href={hPage('stats')}> {NF('', "0.75rem")}Stats</NavBarLink>
-          <NavBarLink ia={X.page === 'player'} href={hPage('player')}> {NF('', "0.75rem")}Players</NavBarLink>
-          <NavBarLink ia={X.page === 'compare'} href={hPage('compare')}> {NF('', "0.75rem")}Compare</NavBarLink>
-          <NavBarLink ia={X.page === 'h2h'} href={hPage('h2h')}> {NF('󰋁', "0.75rem")}H2H</NavBarLink>
+          <NavBarLink ia={X.page === 'stats'} href={X.hPage('stats')}> {NF('', "0.75rem")}Stats</NavBarLink>
+          <NavBarLink ia={X.page === 'player'} href={X.hPage('player')}> {NF('', "0.75rem")}Players</NavBarLink>
+          <NavBarLink ia={X.page === 'compare'} href={X.hPage('compare')}> {NF('', "0.75rem")}Compare</NavBarLink>
+          <NavBarLink ia={X.page === 'h2h'} href={X.hPage('h2h')}> {NF('󰋁', "0.75rem")}H2H</NavBarLink>
         </div>
       </div>
     </nav>
@@ -287,13 +290,11 @@ function Body() {
   )
 }
 
-const urlParams = new URLSearchParams(window.location.search);
-pageLoadData.page = resolvePageStr(urlParams.get('page'));
-pageLoadData.period = resolvePeriodIdStr(urlParams.get('period'));
-
-export default function CLMStats() {
-  console.log(pageLoadData)
-  console.log(useState)
+export function PureCLMStats({ U }) {
+  const { urlPeriod, urlPage, urlHref } = U();
+  pageLoadData.page = urlPage;
+  pageLoadData.period = urlPeriod;
+  pageLoadData.href = urlHref;
   const [state, setState] = useState({ ...pageLoadData });
 
   const ctx = new CtxClass(state, setState)
@@ -305,11 +306,6 @@ export default function CLMStats() {
     })()
   }, [])
 
-  const urlParams = new URLSearchParams(window.location.search);
-
-  const urlPeriod = resolvePeriodIdStr(urlParams.get('period'));
-  const urlPage = resolvePageStr(urlParams.get('page'));
-
   useEffect(() => {
     if (urlPeriod !== ctx.period) {
       ctx.mergeState({ period: urlPeriod })
@@ -320,6 +316,11 @@ export default function CLMStats() {
       ctx.mergeState({ page: urlPage })
     }
   }, [urlPage]);
+  useEffect(() => {
+    if (urlHref !== ctx.href) {
+      ctx.mergeState({ href: urlHref })
+    }
+  }, [urlHref])
 
   return (
     <Ctx.Provider value={ctx}>
@@ -332,4 +333,15 @@ export default function CLMStats() {
       </div>
     </Ctx.Provider>
   )
+}
+
+export default function CLMStats() {
+  function U() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlPeriod = resolvePeriodIdStr(urlParams.get('period'));
+    const urlPage = resolvePageStr(urlParams.get('page'));
+    const urlHref = window.location.href;
+    return { urlPage, urlPeriod, urlHref }
+  }
+  return <PureCLMStats U={U} />
 }
