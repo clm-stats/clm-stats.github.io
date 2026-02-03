@@ -9,16 +9,20 @@ timeline.periods.sort((p1, p2) => p2.periodId - p1.periodId);
 
 const PERIODS = {}
 
+const PERIOD_ID_BY_SEASON = {}
+const SEASON_BY_PERIOD_ID = {}
+
 for (const period of timeline.periods) {
   PERIODS[period.periodId] = period;
+  PERIOD_ID_BY_SEASON[period.season] = period.periodId;
+  SEASON_BY_PERIOD_ID[period.periodId] = period.season;
 }
 
-function resolvePeriodIdStr(str) {
-  const parsed = parseInt(str)
-  return PERIODS[parsed] ? parsed : timeline.current;
+function resolveSeasonStr(str) {
+  return PERIOD_ID_BY_SEASON[str] || timeline.current;
 }
 
-const PAGES = new Set(['stats', 'player', 'compare', 'h2h']);
+const PAGES = new Set(['stats', 'players', 'compare', 'h2h']);
 
 function resolvePageStr(str) {
   return str && PAGES.has(str.toLowerCase()) ? str.toLowerCase() : 'stats';
@@ -40,6 +44,7 @@ class CtxClass {
 
   get href() { return this.state.href; }
   get page() { return resolvePageStr(this.state.page); }
+  get season() { return SEASON_BY_PERIOD_ID[this.period]; }
   get period() { return this.state.period || timeline.current; }
   get periodTitle() { return PERIODS[this.period].title; }
 
@@ -64,11 +69,11 @@ class CtxClass {
 
 
   hPeriod(periodId) {
-    return `/p/${periodId}/${this.page}.html`;
+    return `/p/${SEASON_BY_PERIOD_ID[periodId]}/${this.page}`;
   }
 
   hPage(page) {
-    return `/p/${this.period}/${page}.html`;
+    return `/p/${this.season}/${page}`;
   }
 }
 
@@ -76,46 +81,6 @@ const Ctx = createContext({});
 
 function useCtx() {
   return useContext(Ctx);
-}
-
-function SideNav() {
-  const X = useCtx();
-  function renderTreeNode(path) {
-    return function (el) {
-      if (el.node === 'file') {
-        return (
-          <li key={el.name} >
-            <a href={`${path}/${el.name}`} >
-              {el.name}
-            </a>
-          </li>
-        )
-      } else {
-        return (
-          <li key={el.name}>
-            <p className='menu-label'>{el.name}</p>
-            <ul className='menu-list'>
-              {el.children.map(renderTreeNode(path + "/" + el.name))}
-            </ul>
-          </li>
-        )
-      }
-    }
-  }
-  return (
-    <div className={cn('dz-docs-side-nav', X.cnSideNavActive)} >
-      <aside className='menu scroll has-background-text-soft p-4'>
-        <ul className='menu-list'>
-          <li>
-            <p className='menu-label'>org files</p>
-            <ul className='menu-list'>
-              {X.orgTree.map(renderTreeNode(""))}
-            </ul>
-          </li>
-        </ul>
-      </aside>
-    </div>
-  )
 }
 
 function NavBarLink({ href, children, iht = false, ia = false }) {
@@ -217,7 +182,7 @@ function MenuBar() {
       <div className='navbar-brand is-flex-grow-1'>
         <NavBarLink href={`/?period=${X.period - 1}`}> <img src="/favicon.ico" /> CLM </NavBarLink>
         <NavBarLink ia={X.page === 'stats'} iht={true} href={X.hPage('stats')}> {NF('')}Stats</NavBarLink>
-        <NavBarLink ia={X.page === 'player'} iht={true} href={X.hPage('player')}> {NF('')}Players</NavBarLink>
+        <NavBarLink ia={X.page === 'players'} iht={true} href={X.hPage('players')}> {NF('')}Players</NavBarLink>
         <NavBarLink ia={X.page === 'compare'} iht={true} href={X.hPage('compare')}> {NF('')}Compare</NavBarLink>
         <NavBarLink ia={X.page === 'h2h'} iht={true} href={X.hPage('h2h')}> {NF('󰋁')}H2H</NavBarLink>
         <div
@@ -243,26 +208,13 @@ function MenuBar() {
       <div style={{ flex: 0 }} className={cn('navbar-menu', X.cnBurgerActive)} >
         <div className='navbar-start is-hidden-desktop'>
           <NavBarLink ia={X.page === 'stats'} href={X.hPage('stats')}> {NF('', "0.75rem")}Stats</NavBarLink>
-          <NavBarLink ia={X.page === 'player'} href={X.hPage('player')}> {NF('', "0.75rem")}Players</NavBarLink>
+          <NavBarLink ia={X.page === 'players'} href={X.hPage('players')}> {NF('', "0.75rem")}Players</NavBarLink>
           <NavBarLink ia={X.page === 'compare'} href={X.hPage('compare')}> {NF('', "0.75rem")}Compare</NavBarLink>
           <NavBarLink ia={X.page === 'h2h'} href={X.hPage('h2h')}> {NF('󰋁', "0.75rem")}H2H</NavBarLink>
         </div>
       </div>
     </nav>
   )
-}
-
-function Footer() {
-  /*
-  return (
-    <footer className='footer'>
-      <div className='content'>
-        page footer
-      </div>
-    </footer>
-  )
-  */
-  return null;
 }
 
 function Body() {
@@ -281,8 +233,8 @@ function Body() {
 export function PureCLMStats({ U }) {
   const { urlHref } = U();
   const hrefPath = (new URL(urlHref)).pathname;
-  const parts = (/^\/p\/(\d+)\/([a-zA-Z]+)(\.html)?$/).exec(hrefPath.toLowerCase());
-  const urlPeriod = resolvePeriodIdStr((parts || [])[1]);
+  const parts = (/^\/([a-z0-9\-]+)\/([a-z0-9]+)(\.html)?$/).exec(hrefPath.toLowerCase());
+  const urlPeriod = resolveSeasonStr((parts || [])[1]);
   const urlPage = resolvePageStr((parts || [])[2]);
   // const urlPeriod, urlPage, 
   pageLoadData.page = urlPage;
@@ -291,13 +243,6 @@ export function PureCLMStats({ U }) {
   const [state, setState] = useState({ ...pageLoadData });
 
   const ctx = new CtxClass(state, setState)
-
-  useEffect(() => {
-    (async () => {
-      const res = await fetch('/api?cmd=orgTree')
-      setState({ ...state, 'org-tree': await res.json() })
-    })()
-  }, [])
 
   useEffect(() => {
     if (urlPeriod !== ctx.period) {
@@ -319,10 +264,7 @@ export function PureCLMStats({ U }) {
     <Ctx.Provider value={ctx}>
       <div className='container box is-max-widescreen'>
         <MenuBar />
-        <div className='is-flex-grow-1 is-relative' >
-          <Body />
-        </div>
-        <Footer />
+        <Body />
       </div>
     </Ctx.Provider>
   )
@@ -330,11 +272,8 @@ export function PureCLMStats({ U }) {
 
 export default function CLMStats() {
   function U() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlPeriod = resolvePeriodIdStr(urlParams.get('period'));
-    const urlPage = resolvePageStr(urlParams.get('page'));
     const urlHref = window.location.href;
-    return { urlPage, urlPeriod, urlHref }
+    return { urlHref }
   }
   return <PureCLMStats U={U} />
 }

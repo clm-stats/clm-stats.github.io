@@ -8,10 +8,10 @@ if (process.env.NODE_ENV === "production") {
     el = h(PureCLMStats, {
         U: () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const urlPeriod = urlParams.get('period') || 13;
+            const urlSeason = urlParams.get('season') || 'chicago_2025-3';
             const urlPage = urlParams.get('page') || 'stats';
-            const urlHref = `http://localhost:8000/p/${urlPeriod}/${urlPage}.html`;
-            return { urlPage, urlPeriod, urlHref }
+            const urlHref = `http://localhost:8000/${urlSeason}/${urlPage}.html`;
+            return { urlHref }
         },
     })
 }
