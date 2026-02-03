@@ -1,37 +1,63 @@
 @use "./base" as BASE;
+@use "bulma/sass/utilities/mixins";
 
-.scroll {
-  overflow: scroll;
+:root {
+    --bulma-info-h: 197;
+    --bulma-link-h: 257;
 }
 
-.dz-docs-body {
-    position: relative;
+#app .navitem-right {
+    padding-left: 0;
+    padding-right: 0;
+    margin-inline-start: 0;
+    margin-inline-end: 0;
+
+    input,
+    button {
+        max-width: min(calc(90vw - 18rem), 200px);
+        border-right-width: 0px;
+    }
 }
 
-.dz-docs-body>* {
-    max-width: calc(100% - BASE.$sideNavWidth);
-    transition: transform 0.5s ease-in-out;
-    transform: translateX(0);
-    position: absolute;
-    left: 0;
-    top: 0;
+
+#app .navitem-right {
+
+    input,
+    button {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        border-bottom-left-radius: 0;
+    }
 }
 
-.dz-docs-body.is-active>* {
-    transform: translateX(BASE.$sideNavWidth);
+#app .navitem-right:first-of-type {
+    margin-inline-start: auto;
+
+    input,
+    button {
+        border-top-left-radius: var(--bulma-radius);
+        border-bottom-left-radius: var(--bulma-radius);
+    }
 }
 
-.dz-docs-side-nav>* {
-    position: absolute;
-    left: 0;
-    height: 100%;
-    width: BASE.$sideNavWidth;
-    transition: transform 0.5s ease-in-out;
-    transform: translateX(-1 * BASE.$sideNavWidth);
+#app .navitem-right:last-of-type {
+    margin-inline-end: 0.375rem;
+
+    input,
+    button {
+        border-top-right-radius: var(--bulma-radius);
+        border-bottom-right-radius: var(--bulma-radius);
+        border-right-width: 1px;
+    }
 }
 
-.dz-docs-side-nav.is-active>* {
-    transform: translateX(0);
+html #app {
+    nav.navbar {
+        padding-left: 0rem;
+        padding-right: 0rem;
+        border-bottom: 2px solid var(--bulma-border);
+    }
 }
 
 html #app {
@@ -41,11 +67,33 @@ html #app {
 }
 
 html.has-navbar-fixed-top #app {
-    min-height: calc(100vh - var(--bulma-navbar-height));
+    min-height: 100vh;
 }
 
 html #app {
-  code, pre, tt, kbd, samp, .mono {
-    font-family: FiraCode Nerd Font;
-  }
+    background-color: hsl(var(--bulma-info-h), var(--bulma-info-s), var(--bulma-background-l));
+
+    code,
+    pre,
+    tt,
+    kbd,
+    samp,
+    .mono {
+        font-family: FiraCode Nerd Font;
+    }
+}
+
+html #app .container {
+    background-color: var(--bulma-scheme-main);
+    max-width: min(90vw, 1152px);
+    border-radius: 0;
+}
+
+@include mixins.desktop {
+    html #app {
+        nav.navbar {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+    }
 }

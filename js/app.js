@@ -1,5 +1,4 @@
-import React from 'react';
-import { createRoot } from 'react-dom/client';
+import { render, h } from 'preact';
 import CLMStats from './CLMStats';
 
-createRoot(document.getElementById('app')).render(React.createElement(CLMStats));
+render(h(CLMStats), document.getElementById('app'));

@@ -2,11 +2,10 @@
 @use "./base" as BASE;
 
 @include mixins.desktop {
-  #app .#{BASE.$bodyCn}>* {
-    transform: translateX(BASE.$sideNavWidth);
-  }
-
-  #app .#{BASE.$sideNavCn}>* {
-    transform: translateX(0);
+  html #app {
+    nav.navbar {
+      padding-left: 0;
+      padding-right: 0;
+    }
   }
 }
