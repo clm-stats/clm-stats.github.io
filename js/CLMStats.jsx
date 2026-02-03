@@ -1,7 +1,11 @@
 import { createContext } from 'preact';
 import { useContext, useEffect, useState } from 'preact/hooks';
 import cn from 'classnames';
-import timeline from './timeline.json';
+import _timeline from './timeline.json';
+
+const timeline = { ..._timeline };
+timeline.periods = [..._timeline.periods];
+timeline.periods.sort((p1, p2) => p2.periodId - p1.periodId);
 
 const PERIODS = {}
 
@@ -180,12 +184,15 @@ function Periods() {
       </div>
       <div className="dropdown-menu" id="dropdown-menu4" role="menu">
         <div className="dropdown-content">
-          <div className="dropdown-item">
-            <p>
-              You can insert <strong>any type of content</strong> within the
-              dropdown menu.
-            </p>
-          </div>
+          {timeline.periods.map(({ periodId, title }) => (
+            <a
+              key={periodId}
+              href={hPeriod(periodId)}
+              className={cn('dropdown-item', { 'is-active': periodId === X.period })}
+            >
+              {title}
+            </a>
+          ))}
         </div>
       </div>
     </div>
