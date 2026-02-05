@@ -128,6 +128,8 @@ export function mkQs(...args) {
         else { for (const k in arg) { props[k] = arg[k]; } }
     }
     function qsAdd(k, v) {
+        if (v === undefined) { return; }
+        if (v === null) { return; }
         const c1 = !qs ? '?' : '&';
         qs = `${qs}${c1}${k}=${v}`;
     }
@@ -144,26 +146,51 @@ export function resolveSort(sortIn = {}) {
     return sort;
 }
 
-const filterKeys = ['outOfRegion', 'attendance'];
+const filterKeys = ['outOfRegion', 'inadAttendance'];
+
+const defaultFilterVals = {
+    outOfRegion: false,
+    inadAttendance: false,
+};
 
 export function resolveFilter(str) {
     let i = parseInt(str);
     i = Number.isNaN(i) ? 0 : i;
     const res = {};
     for (const k of filterKeys) {
-        res[k] = (i % 2) === 0;
+        res[k] = ((i % 2) === 0) === defaultFilterVals[k];
         i = Math.floor(i / 2);
     }
     return res;
 }
 
-export function toFilterString(filter = {}) {
+export function asSearchParams(filter = {}) {
     let res = 0;
     const fks = [...filterKeys];
     fks.reverse();
     for (const k of fks) {
         res *= 2;
-        res += filter[k] ? 0 : 1
+        res += filter[k] !== !defaultFilterVals[k] ? 0 : 1
     }
-    return res ? `${res}` : undefined;
+    return res ? { filter: `${res}` } : {};
+}
+
+export function addedFilters(str) {
+    const filter = resolveFilter(str);
+    const res = [];
+    for (const k in defaultFilterVals) {
+        if (defaultFilterVals[k]) { continue }
+        if (filter[k]) { res.push(k); }
+    }
+    return res;
+}
+
+export function removedFilters(str) {
+    const filter = resolveFilter(str);
+    const res = [];
+    for (const k in defaultFilterVals) {
+        if (!defaultFilterVals[k]) { continue }
+        if (!filter[k]) { res.push(k); }
+    }
+    return res;
 }

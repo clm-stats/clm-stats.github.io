@@ -64,6 +64,19 @@ class CtxClass {
     return this.state['org-tree'] || [];
   }
 
+  get tableChanges() {
+    return this.state.tableChanges;
+  }
+
+  get hasTableChanges() {
+    console.log('TABLE CHANGES')
+    console.log(this.tableChanges)
+    return this.tableChanges.length > 0;
+  }
+
+  get skipInadAttendance() { return this.state.filter.inadAttendance; }
+  get skipOutOfRegion() { return this.state.filter.outOfRegion; }
+
   doesMeetActivity(rank) {
     return rank.prEvents >= 8;
   }
@@ -88,7 +101,15 @@ class CtxClass {
 
   hSort(by, dir) {
     const sort = { by, dir };
-    return this.urlMk({ season: this.season, page: this.page, sort });
+    return this.urlMk({ season: this.season, page: this.page, sort, filter: this.state.filter });
+  }
+
+  hFilter(overwrites = {}) {
+    let filter = { ...this.state.filter };
+    for (const k in overwrites) {
+      filter[k] = overwrites[k]
+    }
+    return this.urlMk({ season: this.season, page: this.page, sort: this.sort, filter });
   }
 
   character(playerIdent) {
@@ -112,6 +133,22 @@ class CtxClass {
         dir: U.resolveSortDir(url.searchParams.get('dir')),
         by: U.resolveSortBy(url.searchParams.get('by')),
       };
+      const filterParam = url.searchParams.get('filter');
+      const filter = U.resolveFilter(filterParam);
+      const tableChanges = [];
+      if (url.searchParams.get('by')) {
+        tableChanges.push(['sort-by']);
+      } else if (url.searchParams.get('dir')) {
+        tableChanges.push(['sort-dir']);
+      }
+      if (filterParam) {
+        for (const filterKey of U.addedFilters(filterParam)) {
+          tableChanges.push(['filter-add', filterKey]);
+        }
+        for (const filterKey of U.removedFilters(filterParam)) {
+          tableChanges.push(['filter-rm', filterKey]);
+        }
+      }
       async function after() {
         if (!isLoadingPeriod) { return {} }
         try {
@@ -122,9 +159,11 @@ class CtxClass {
           return { error };
         }
       }
-      const newState = (
-        { periodId, page, href: urlHref, period, isLoadingPeriod, sort, after }
-      );
+      const newState = {
+        href: urlHref,
+        periodId, page, period, isLoadingPeriod, sort, after, filter,
+        tableChanges
+      };
       this.mergeState(newState);
     }
   }
@@ -206,12 +245,115 @@ function Search() {
   );
 }
 
+function ResetTable() {
+  const X = useCtx();
+  function chHref([chType, chParam]) {
+    if (chType === 'filter-add') {
+      return X.hFilter({ [chParam]: false });
+    } else if (chType === 'filter-rm') {
+      return X.hFilter({ [chParam]: true });
+    } else if (chType === 'sort-dir') {
+      return X.hSort(U.resolveSortBy(), U.resolveSortDir());
+    } else if (chType === 'sort-by') {
+      return X.hSort(this.sort.by, this.sort.dir === 'asc' ? 'desc' : 'asc');
+    }
+  }
+  function chColor([chType, chParam]) {
+    if (chType === 'filter-add' || chType === 'filter-rm') {
+      return chParam === 'inadAttendance' ? 'warning' : 'link'
+    } else if (chType === 'sort-by' || chType === 'sort-dir') {
+      return 'info';
+    }
+  }
+  function chClass() {
+    return `dropdown-item ws-nw is-flex is-align-items-center`;
+  }
+  function chText([chType]) {
+    if (chType === 'filter-add') {
+      return `added filter`;
+    } else if (chType === 'filter-rm') {
+      return `removed filter`;
+    } else if (chType === 'sort-dir') {
+      return `set sort direction`;
+    } else if (chType === 'sort-by') {
+      return `set sort`;
+    }
+  }
+  function chTag([chType, chParam]) {
+    if (chType === 'filter-add' | chType === 'filter-rm') {
+      return chParam === 'inadAttendance' ? 'PR Inelegible' : 'Out of Region';
+    } else if (chType === 'sort-dir') {
+      return X.sort.dir;
+    } else if (chType === 'sort-by') {
+      return `${X.sort.by} |> ${X.sort.dir}`;
+    }
+  }
+  return (
+    <div style={{ position: 'relative' }} className='dropdown is-right is-hoverable'>
+      <div className="dropdown-trigger">
+        <Link href={X.hPage('stats')} className="button" aria-haspopup="true" aria-controls="resetDropdown">
+          <div
+            style={{
+              position: 'absolute',
+              top: '0',
+              left: '0',
+              display: 'flex',
+              width: '100%',
+              height: '100%',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <div style={{ transform: 'translateX(-30%)' }} >{NF('')}</div>
+          </div>
+          <span style={{ opacity: '0' }}>{''}</span>
+        </Link>
+      </div>
+      <div className="dropdown-menu" id="resetDropdown" role="menu">
+        <div className="dropdown-content">
+          <Link
+            href={X.hPage('stats')}
+            className="dropdown-item ws-nw"
+          >
+            Reset to Table defaults
+          </Link>
+          <hr className='dropdown-divider' />
+          {X.tableChanges.map((change) => (
+            <>
+              <Link
+                style={{ paddingInlineEnd: '1rem' }}
+                key={change.join('.')}
+                href={chHref(change)}
+                className={chClass(change)}
+              >
+                <span
+                  style={{ paddingLeft: '0.25em', paddingRight: '0.25em' }}
+                  className='tag has-background-link-op-1 ws-nw is-rounded'
+                >
+                  <button style={{ marginInlineEnd: 0, marginInline: 0 }} className='delete is-small' />
+                </span>
+                &nbsp;&nbsp;
+                {chText(change)}
+                <span style={{ minWidth: '1rem' }} className='is-flex-grow-1' />
+                <span className={`tag is-${chColor(change)}`}>
+                  {chTag(change)}
+                </span>
+              </Link>
+              <hr key={'hr' + change.join('.')} className='dropdown-divider' />
+            </>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Filters() {
   const X = useCtx();
   return (
     <div style={{ position: 'relative' }} className='dropdown is-right is-hoverable'>
       <div className="dropdown-trigger">
-        <button className="button" aria-haspopup="true" aria-controls="dropdown-menu4">
+        <button className="button" aria-haspopup="true" aria-controls="filterDropdown">
           <div
             style={{
               position: 'absolute',
@@ -229,29 +371,29 @@ function Filters() {
           <span style={{ opacity: '0' }}>{''}</span>
         </button>
       </div>
-      <div className="dropdown-menu" id="dropdown-menu4" role="menu">
+      <div className="dropdown-menu" id="filterDropdown" role="menu">
         <div className="dropdown-content">
-          <label>
-            <Link
-              href={"#"}
-              className="dropdown-item has-background-link-op-1 ws-nw"
-            >
-              <input type="checkbox" checked={true} />
-              &nbsp;&nbsp;&nbsp;
+          <Link
+            href={X.hFilter({ outOfRegion: !X.skipOutOfRegion })}
+            className="dropdown-item ws-nw"
+          >
+            <input type="checkbox" checked={X.skipOutOfRegion} />
+            &nbsp;&nbsp;&nbsp;
+            <span className='has-background-link-op-1 '>
               Hide Out of Region Players
-            </Link>
-          </label>
+            </span>
+          </Link>
           <hr className='dropdown-divider' />
-          <label>
-            <Link
-              href={"#"}
-              className="dropdown-item has-background-warning-op-1 ws-nw"
-            >
-              <input type="checkbox" checked={false} />
-              &nbsp;&nbsp;&nbsp;
+          <Link
+            href={X.hFilter({ inadAttendance: !X.skipInadAttendance })}
+            className="dropdown-item ws-nw"
+          >
+            <input type="checkbox" checked={X.skipInadAttendance} />
+            &nbsp;&nbsp;&nbsp;
+            <span className='has-background-warning-op-1 '>
               Hide PR Ineligible Players
-            </Link>
-          </label>
+            </span>
+          </Link>
         </div>
       </div>
     </div>
@@ -264,20 +406,17 @@ function Periods() {
   return (
     <div style={{ position: 'relative' }} className='dropdown is-right is-hoverable'>
       <div className="dropdown-trigger">
-        <button className="button" aria-haspopup="true" aria-controls="dropdown-menu4">
-          <span className='has-text-info is-hidden-touch'>
-            {X.periodTitle}
-          </span>
-          <span className='has-text-info is-hidden-desktop'>
+        <button className="button" aria-haspopup="true" aria-controls="periodDropdown">
+          <span className='has-text-strong'>
             {NF('')}
           </span>
-          &nbsp;&nbsp;&nbsp;
-          <span className='has-text-info'>
-            {NF('')}
+          <span className='has-text-strong is-hidden-touch'>
+            &nbsp;&nbsp;&nbsp; {X.periodTitle}
           </span>
+          &nbsp;&nbsp;&nbsp;
         </button>
       </div>
-      <div className="dropdown-menu" id="dropdown-menu4" role="menu">
+      <div className="dropdown-menu" id="periodDropdown" role="menu">
         <div className="dropdown-content">
           {U.timeline.periods.map(({ periodId, title }) => (
             <Link
@@ -304,14 +443,14 @@ function THCell({ className, by, text, justifyContent }) {
   const nextDir = !isActive ? U.getDefaultDir(by) : (isAsc ? 'desc' : 'asc');
   return (
     <th className={cn('is-clipped', className || '')}>
-      <PreSized width="0" justifyContent={justifyContent} >
+      <PreSized width="auto" justifyContent={justifyContent} >
         <Link
           className={cn('has-text-strong', { 'is-underlined': isActive })}
           href={X.hSort(by, nextDir)}
         >
-          {text}&nbsp;
-          <span className='rel'>
-            <span className='curr-sort'>
+          &nbsp;{text}&nbsp;
+          <span className={cn('rel', { isActive })}>
+            <span className='curr-sort is-overlay is-flex'>
               {NF(sym)}
             </span>
             <span className='next-sort is-overlay is-flex'>
@@ -330,7 +469,12 @@ function MenuBar() {
   return (
     <nav className='navbar is-fixed-top container is-max-widescreen'>
       <div className='navbar-brand is-flex-grow-1'>
-        <NavBarLink href="https://chicagomelee.com/"> <img src="/favicon.ico" /> CLM </NavBarLink>
+        <NavBarLink href="https://chicagomelee.com/">
+          <img src="/favicon.ico" />
+          <span className='is-hidden-touch'>
+            CLM
+          </span>
+        </NavBarLink>
         <NavBarLink ia={X.page === 'stats'} iht={true} href={X.hPage('stats')}> {NF('')}Stats</NavBarLink>
         <NavBarLink ia={X.page === 'players'} iht={true} href={X.hPage('players')}> {NF('')}Players</NavBarLink>
         <NavBarLink ia={X.page === 'compare'} iht={true} href={X.hPage('compare')}> {NF('')}Compare</NavBarLink>
@@ -341,6 +485,9 @@ function MenuBar() {
         >
           <Search />
         </div>
+        {!X.hasTableChanges ? null : (
+          <div className='navbar-item navitem-right' > <ResetTable /> </div>
+        )}
         <div className='navbar-item navitem-right' style={{}} > <Filters /> </div>
         <div className='navbar-item navitem-right' style={{ marginInlineEnd: '0.375rem' }} > <Periods /> </div>
         <a
@@ -381,28 +528,8 @@ function ProfileImage(props) {
 
 function PreSized({ width, children, justifyContent = 'center' }) {
   return (
-    <div style={{ overflow: 'visible' }} className='rel'>
-      <div style={{ width }} />
-      <div
-        className='is-overlay'
-      >
-        <div
-          className='rel'
-          style={{ left: '50%' }}
-        >
-          <div
-            className={`rel is-flex is-justify-content-${justifyContent}`}
-            style={{ transform: 'translateY(-50%) translateX(-50%)' }}
-          >
-            <div
-              className={`rel is-flex is-justify-content-${justifyContent}`}
-              style={{ width: '100%' }}
-            >
-              {children}
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className={`rel is-flex is-justify-content-${justifyContent}`} style={{ width }}>
+      {children}
     </div>
   );
 }
@@ -462,7 +589,7 @@ function PureRow(props) {
           </Link>
         </PreSized>
       </td>
-      <td className='py-6 nowrap has-text-centered'>
+      <td className='py-5 nowrap has-text-centered'>
         <PreSized width="5.625rem">
           {props.qual}
         </PreSized>
@@ -481,7 +608,21 @@ function PureRow(props) {
               </div>
               <div className='dropdown-menu' role="menu">
                 <div className='dropdown-content box'>
-                  {noPrReason}
+                  <div className='dropdown-item is-underline'>
+                    Inelegible by:
+                  </div>
+                  {!props.isOutOfRegion ? null : (
+                    <div className='has-text-left dropdown-item has-background-link-op-1' >
+                      <span className='has-text-weak'>‣</span>
+                      &nbsp;&nbsp;from out of region
+                    </div>
+                  )}
+                  {!props.isIneligible ? null : (
+                    <div className='has-text-left dropdown-item has-background-warning-op-1' >
+                      <span className='has-text-weak'>‣</span>
+                      &nbsp;&nbsp;insufficient attendance
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -520,7 +661,7 @@ function StatsTable() {
       name={(<div className='skeleton-lines'><div /></div>)}
       pronouns={<span className='tag is-skeleton'>pronouns</span>}
       character={<span className='icon is-skeleton'>c</span>}
-      qual={(<div className='skeleton-lines'><div /></div>)}
+      qual={(<div style={{ height: '1.5rem' }} className='skeleton-lines'><div /></div>)}
       acc={(<div className='skeleton-lines'><div /></div>)}
       att={(<div className='skeleton-lines'><div /></div>)}
       mruLink={(<div className='skeleton-lines'><div /></div>)}
@@ -539,7 +680,10 @@ function StatsTable() {
 
   const el = (X.isLoadingPeriod ? (() => skel) : (() => {
     const { players, events } = X.state.period;
-    const filtered = X.sorted; // X.sorted.filter(rank => U.inRegion(rank.playerIdent));
+    const filtered = X.sorted.filter(rank => (
+      (!X.skipOutOfRegion || U.inRegion(rank.playerIdent)) &&
+      (!X.skipInadAttendance || X.doesMeetActivity(rank))
+    ));
     const rows = filtered.map((rank, nth) => {
       const player = players[rank.playerIdent];
       const character = X.character(rank.playerIdent);
@@ -661,6 +805,24 @@ export function PureCLMStats(props) {
       dir: U.resolveSortDir(url.searchParams.get('dir')),
       by: U.resolveSortBy(url.searchParams.get('by')),
     };
+    const filterParam = url.searchParams.get('filter');
+    pageLoadData.filter = U.resolveFilter(filterParam);
+    pageLoadData.tableChanges = [];
+    if (url.searchParams.get('by')) {
+      pageLoadData.tableChanges.push(['sort-by']);
+    } else if (url.searchParams.get('dir')) {
+      pageLoadData.tableChanges.push(['sort-dir']);
+    }
+    if (filterParam) {
+      for (const filterKey of U.addedFilters(filterParam)) {
+        pageLoadData.tableChanges.push(['filter-add', filterKey]);
+      }
+      for (const filterKey of U.removedFilters(filterParam)) {
+        pageLoadData.tableChanges.push(['filter-rm', filterKey]);
+      }
+    }
+    console.log(url.searchParams.get('filter'))
+    console.log(url);
     initialState = { ...pageLoadData }
     pageLoadData.isDone = true;
   }
@@ -702,13 +864,13 @@ export default function CLMStats() {
     function mkPeriodFuture() {
       return window.periodFuture;
     }
-    function urlMk({ season, page, sort = {} } = {}) {
+    function urlMk({ season, page, sort = {}, filter } = {}) {
       const base = ((() => {
         if (!season) { return '/'; }
         if (!page) { return `/${season}`; }
         return `/${season}/${page}`;
       })());
-      return base + U.mkQs(U.resolveSort(sort));
+      return base + U.mkQs(U.resolveSort(sort), U.asSearchParams(filter));
     }
     return { urlHrefMk, urlMk, mkPeriodFuture }
   }

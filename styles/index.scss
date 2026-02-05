@@ -12,8 +12,8 @@
     margin-inline-end: 0;
 
     input,
-    button {
-        max-width: min(calc(90vw - 17rem), 200px);
+    .button {
+        max-width: min(calc(90vw - 17rem), 11.875rem);
         border-left-width: 0px;
     }
 }
@@ -22,7 +22,7 @@
 #app .navitem-right {
 
     input,
-    button {
+    .button {
         border-top-left-radius: 0;
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
@@ -34,7 +34,7 @@
     margin-inline-start: auto;
 
     input,
-    button {
+    .button {
         border-top-left-radius: var(--bulma-radius);
         border-bottom-left-radius: var(--bulma-radius);
         border-left-width: 1px;
@@ -45,7 +45,7 @@
     margin-inline-end: 0.375rem;
 
     input,
-    button {
+    .button {
         border-top-right-radius: var(--bulma-radius);
         border-bottom-right-radius: var(--bulma-radius);
     }
@@ -260,12 +260,16 @@ html #app table.table {
             text-decoration: underline;
 
             .curr-sort {
-                opacity: 0.5;
-                color: var(--bulma-text-weak) !important;
+                opacity: 0.0;
+                color: var(--bulma-text) !important;
 
                 .mono {
-                    color: var(--bulma-text-weak) !important;
+                    color: var(--bulma-text) !important;
                 }
+            }
+
+            .isActive>.curr-sort {
+                opacity: 0.25;
             }
 
             .next-sort {
