@@ -120,8 +120,13 @@ export function lkupChar(player) {
     return (PLAYER_DATA[player] || {}).character;
 }
 
-export function mkQs(props, intoQs) {
-    let qs = intoQs || "";
+export function mkQs(...args) {
+    let qs = "";
+    const props = {};
+    for (const arg of args) {
+        if ((typeof arg) === 'string') { qs += arg; }
+        else { for (const k in arg) { props[k] = arg[k]; } }
+    }
     function qsAdd(k, v) {
         const c1 = !qs ? '?' : '&';
         qs = `${qs}${c1}${k}=${v}`;
@@ -137,4 +142,28 @@ export function resolveSort(sortIn = {}) {
     if (sort.dir === resolveSortDir()) { delete sort.dir; }
     if (sort.by === resolveSortBy()) { delete sort.by; }
     return sort;
+}
+
+const filterKeys = ['outOfRegion', 'attendance'];
+
+export function resolveFilter(str) {
+    let i = parseInt(str);
+    i = Number.isNaN(i) ? 0 : i;
+    const res = {};
+    for (const k of filterKeys) {
+        res[k] = (i % 2) === 0;
+        i = Math.floor(i / 2);
+    }
+    return res;
+}
+
+export function toFilterString(filter = {}) {
+    let res = 0;
+    const fks = [...filterKeys];
+    fks.reverse();
+    for (const k of fks) {
+        res *= 2;
+        res += filter[k] ? 0 : 1
+    }
+    return res ? `${res}` : undefined;
 }

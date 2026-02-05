@@ -21,8 +21,6 @@ class CtxClass {
   }
 
   getSortedImpl() {
-    console.log(this.sortKey);
-    console.log(this.sort.by, this.sort.dir)
     const { events, ranks } = this.state.period;
     const res = [...ranks];
     const sortFn = (({
@@ -66,10 +64,13 @@ class CtxClass {
     return this.state['org-tree'] || [];
   }
 
+  doesMeetActivity(rank) {
+    return rank.prEvents >= 8;
+  }
+
   toggleHamburger() { this.mergeState({ isHamburgerOpen: !this.isHamburgerOpen }); }
 
   mergeState(props) {
-    console.log('merging....', props);
     if (props.period && props.period !== this.state.period) {
       this.sorts = {};
     }
@@ -98,13 +99,10 @@ class CtxClass {
 
   onHref(href) {
     if (href !== window.location.href) {
-      console.log('push window history');
       window.history.pushState({}, null, href);
-      console.log('pushed');
       const urlHref = this.urlHrefMk();
       const url = new URL(urlHref);
       const hrefPath = url.pathname;
-      console.log({ urlHref, url, hrefPath })
       const parts = (/^\/([a-z0-9_\-]+)\/([a-z0-9]+)(\.html)?$/).exec(hrefPath.toLowerCase());
       const periodId = U.resolveSeasonStr((parts || [])[1]);
       const page = U.resolvePageStr((parts || [])[2]);
@@ -209,6 +207,7 @@ function Search() {
 }
 
 function Filters() {
+  const X = useCtx();
   return (
     <div style={{ position: 'relative' }} className='dropdown is-right is-hoverable'>
       <div className="dropdown-trigger">
@@ -232,12 +231,27 @@ function Filters() {
       </div>
       <div className="dropdown-menu" id="dropdown-menu4" role="menu">
         <div className="dropdown-content">
-          <div className="dropdown-item">
-            <p>
-              You can insert <strong>any type of content</strong> within the
-              dropdown menu.
-            </p>
-          </div>
+          <label>
+            <Link
+              href={"#"}
+              className="dropdown-item has-background-link-op-1 ws-nw"
+            >
+              <input type="checkbox" checked={true} />
+              &nbsp;&nbsp;&nbsp;
+              Hide Out of Region Players
+            </Link>
+          </label>
+          <hr className='dropdown-divider' />
+          <label>
+            <Link
+              href={"#"}
+              className="dropdown-item has-background-warning-op-1 ws-nw"
+            >
+              <input type="checkbox" checked={false} />
+              &nbsp;&nbsp;&nbsp;
+              Hide PR Ineligible Players
+            </Link>
+          </label>
         </div>
       </div>
     </div>
@@ -280,7 +294,7 @@ function Periods() {
   );
 }
 
-function THCell({ className, by, text }) {
+function THCell({ className, by, text, justifyContent }) {
   const X = useCtx();
   const isAsc = X.sort.dir === 'asc';
   const isActive = X.sort.by === by;
@@ -289,21 +303,23 @@ function THCell({ className, by, text }) {
   )
   const nextDir = !isActive ? U.getDefaultDir(by) : (isAsc ? 'desc' : 'asc');
   return (
-    <th className={className || ''}>
-      <Link
-        className={cn('has-text-strong', { 'is-underlined': isActive })}
-        href={X.hSort(by, nextDir)}
-      >
-        {text}&nbsp;
-        <span className='rel'>
-          <span className='curr-sort'>
-            {NF(sym)}
+    <th className={cn('is-clipped', className || '')}>
+      <PreSized width="0" justifyContent={justifyContent} >
+        <Link
+          className={cn('has-text-strong', { 'is-underlined': isActive })}
+          href={X.hSort(by, nextDir)}
+        >
+          {text}&nbsp;
+          <span className='rel'>
+            <span className='curr-sort'>
+              {NF(sym)}
+            </span>
+            <span className='next-sort is-overlay is-flex'>
+              {NF(nextDir === 'asc' ? '' : '')}
+            </span>
           </span>
-          <span className='next-sort is-overlay is-flex'>
-            {NF(nextDir === 'asc' ? '' : '')}
-          </span>
-        </span>
-      </Link>
+        </Link>
+      </PreSized>
     </th>
   );
 }
@@ -363,54 +379,136 @@ function ProfileImage(props) {
   );
 }
 
-function PureRow(props) {
+function PreSized({ width, children, justifyContent = 'center' }) {
   return (
-    <tr>
+    <div style={{ overflow: 'visible' }} className='rel'>
+      <div style={{ width }} />
+      <div
+        className='is-overlay'
+      >
+        <div
+          className='rel'
+          style={{ left: '50%' }}
+        >
+          <div
+            className={`rel is-flex is-justify-content-${justifyContent}`}
+            style={{ transform: 'translateY(-50%) translateX(-50%)' }}
+          >
+            <div
+              className={`rel is-flex is-justify-content-${justifyContent}`}
+              style={{ width: '100%' }}
+            >
+              {children}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PureRow(props) {
+  const colorType = ((() => {
+    if (props.isOutOfRegion) { return 'link'; }
+    if (props.isIneligible) { return 'warning'; }
+  })());
+  const noPrReason = ((() => {
+    if (props.isOutOfRegion) { return 'Player is out of region, ineligible for PR'; }
+    if (props.isIneligible) { return 'Player did not meet PR attendance requirements'; }
+  })());
+  const canClmPr = !colorType;
+  const colorClass = canClmPr ? '' : `has-background-${colorType}-op-1`;
+  return (
+    <tr className={cn('rel', colorClass)} >
       <td
         className='has-text-weight-extrabold is-size-3 has-text-centered'
       >
-        <div>
+        <PreSized width="2rem">
           {props.ord}
-        </div>
+        </PreSized>
       </td>
       <td>
-        <Link
-          href={props.href}
-          className='is-flex is-flex-direction-row is-align-items-center player-info'
-        >
-          <div >
-            {props.profileImage}
-          </div>
-          <div className='is-flex is-flex-direction-column'>
-            <div className='no_wrap has-text-weight-bold is-size-5'>{props.name}</div>
-            {!props.pronouns ? null : (
-              <div
-                className='no_wrap is-size-7'
-              >
-                {props.pronouns}
+        <PreSized width="auto" justifyContent="start" >
+          <Link
+            href={props.href}
+            className='is-flex is-flex-direction-row is-align-items-center is-clipped wmax rel'
+            style={{ height: '5rem', transform: 'translateX(-0.5rem)' }}
+          >
+            <div
+              className='is-flex is-flex-direction-row is-align-items-center player-info'
+              style={{
+                position: 'absolute',
+                top: '0.5rem',
+                left: '0.5rem',
+                width: 'calc(100% - 0.5rem)',
+                height: 'calc(100% - 1rem)',
+              }}
+            >
+              <div >
+                {props.profileImage}
               </div>
-            )}
-            {props.character}
-          </div>
-        </Link>
+              <div className='is-flex is-flex-direction-column'>
+                <div className='nowrap has-text-weight-bold is-size-5'>{props.name}</div>
+                {!props.pronouns ? null : (
+                  <div
+                    className='nowrap is-size-7'
+                  >
+                    {props.pronouns}
+                  </div>
+                )}
+                {props.character}
+              </div>
+            </div>
+          </Link>
+        </PreSized>
       </td>
-      <td className='py-5 nowrap has-text-centered'>{props.qual}</td>
-      <td className='nowrap has-text-centered'>{props.acc}</td>
-      <td className='nowrap has-text-centered'>{props.att}</td>
-      <td className=''>
-        <div className='is-flex is-flex-direction-column is-justify-content-center'>
-          {props.mruLink}
-          <div className='nowrap'>
-            {props.mruPlacing}
+      <td className='py-6 nowrap has-text-centered'>
+        <PreSized width="5.625rem">
+          {props.qual}
+        </PreSized>
+      </td>
+      <td className='nowrap has-text-centered'>
+        <PreSized width="5.625rem">
+          {props.acc}
+        </PreSized>
+      </td>
+      <td className='has-text-centered'>
+        <PreSized width="5.625rem">
+          {canClmPr ? props.att : (
+            <div className='dropdown is-hoverable is-right'>
+              <div className='dropdown-trigger is-italic'>
+                {props.att}*
+              </div>
+              <div className='dropdown-menu' role="menu">
+                <div className='dropdown-content box'>
+                  {noPrReason}
+                </div>
+              </div>
+            </div>
+          )}
+        </PreSized>
+      </td>
+      <td className='is-clipped'>
+        <PreSized width="max(9.75rem, 15vw)" justifyContent="start" >
+          <div
+            style={{ width: '100%', overflow: 'hidden' }}
+            className='is-flex is-flex-direction-column is-justify-content-center'
+          >
+            {props.mruLink}
+            <div className='nowrap'>
+              {props.mruPlacing}
+            </div>
+            <div className='nowrap has-text-weak'>
+              {props.mruDate}
+            </div>
           </div>
-          <div className='nowrap has-text-weak'>
-            {props.mruDate}
-          </div>
-        </div>
+        </PreSized>
       </td>
     </tr>
   );
 }
+
+// <div className={cn('ultra-faint is-overlay pe-none', colorClass)} />
 
 function StatsTable() {
   const X = useCtx();
@@ -441,7 +539,7 @@ function StatsTable() {
 
   const el = (X.isLoadingPeriod ? (() => skel) : (() => {
     const { players, events } = X.state.period;
-    const filtered = X.sorted.filter(rank => U.inRegion(rank.playerIdent));
+    const filtered = X.sorted; // X.sorted.filter(rank => U.inRegion(rank.playerIdent));
     const rows = filtered.map((rank, nth) => {
       const player = players[rank.playerIdent];
       const character = X.character(rank.playerIdent);
@@ -455,62 +553,41 @@ function StatsTable() {
       );
 
       return (
-        <tr key={rank.playerIdent} >
-          <td
-            className='has-text-weight-extrabold is-size-3 has-text-centered'
-          >
-            <div>
-              {X.isInitialSortDir ? (nth + 1) : (filtered.length - nth)}
-            </div>
-          </td>
-          <td>
-            <a className='is-flex is-flex-direction-row is-align-items-center player-info' href="#">
-              <div >
-                <ProfileImage
-                  src={player.image}
-                  className={cn({ defaultProfile })}
-                  loading="lazy"
-                  alt='start.gg profile image'
-                />
-              </div>
-              <div className='is-flex is-flex-direction-column'>
-                <div className='no_wrap has-text-weight-bold is-size-5'>{player.name}</div>
-                {!player.pronouns ? null : (
-                  <div
-                    className='no_wrap is-size-7'
-                  >
-                    {player.pronouns}
-                  </div>
-                )}
-                {!character ? null : (
-                  <img
-                    style={{ height: '1.25rem', width: '1.25rem' }}
-                    src={`/chars/${character}.png`}
-                  />
-                )}
-              </div>
+        <PureRow
+          key={rank.playerIdent}
+          ord={X.isInitialSortDir ? (nth + 1) : (filtered.length - nth)}
+          profileImage={(
+            <ProfileImage
+              src={player.image}
+              className={cn({ defaultProfile })}
+              loading="lazy"
+              alt='start.gg profile image'
+            />
+          )}
+          name={player.name}
+          pronouns={player.pronouns}
+          character={!character ? null : (
+            <img
+              style={{ height: '1.25rem', width: '1.25rem' }}
+              src={`/chars/${character}.png`}
+            />
+          )}
+          qual={rank.rating}
+          acc={`${rank.wins || 0} - ${rank.losses || 0}`}
+          att={rank.prEvents || 0}
+          mruLink={(
+            <a
+              className='nowrap'
+              href={`https://start.gg/${event.slug}`}
+            >
+              {event.tournamentName}
             </a>
-          </td>
-          <td className='py-5 nowrap has-text-centered'>{rank.rating}</td>
-          <td className='nowrap has-text-centered'>{rank.wins || 0} - {rank.losses || 0}</td>
-          <td className='nowrap has-text-centered'>{rank.prEvents || 0}</td>
-          <td className=''>
-            <div className='is-flex is-flex-direction-column is-justify-content-center'>
-              <a
-                className='nowrap'
-                href={`https://start.gg/${event.slug}`}
-              >
-                {event.tournamentName}
-              </a>
-              <div className='nowrap'>
-                {rank.placingString} of {event.numEntrants}
-              </div>
-              <div className='nowrap has-text-weak'>
-                {dstr}
-              </div>
-            </div>
-          </td>
-        </tr>
+          )}
+          mruPlacing={`${rank.placingString} of ${event.numEntrants}`}
+          mruDate={dstr}
+          isOutOfRegion={!U.inRegion(rank.playerIdent)}
+          isIneligible={!X.doesMeetActivity(rank)}
+        />
       );
     });
     return (
@@ -535,14 +612,15 @@ function StatsTable() {
         <table
           className='table'
         >
+
           <thead>
             <tr>
               <th className='has-text-centered'> # </th>
-              <THCell by="name" text="Player" />
+              <THCell by="name" text="Player" justifyContent="start" />
               <THCell className='has-text-centered' by="qual" text="Rating" />
               <THCell className='has-text-centered' by="acc" text="W - L" />
               <THCell className='has-text-centered' by="att" text="PR Events" />
-              <THCell by="mru" text="Last Event" />
+              <THCell by="mru" text="Last Event" justifyContent="start" />
             </tr>
           </thead>
           {el}
@@ -568,7 +646,6 @@ let initialState;
 export function PureCLMStats(props) {
   const { urlHrefMk, urlMk, mkPeriodFuture } = props.U();
   if (!pageLoadData.isDone) {
-    console.log('doing this shit!')
     const urlHref_ = urlHrefMk();
     const url = new URL(urlHref_);
     const hrefPath = url.pathname;
@@ -580,7 +657,6 @@ export function PureCLMStats(props) {
     pageLoadData.periodId = urlPeriod;
     pageLoadData.href = urlHref_;
     pageLoadData.isLoadingPeriod = true;
-    console.log(url.searchParams)
     pageLoadData.sort = {
       dir: U.resolveSortDir(url.searchParams.get('dir')),
       by: U.resolveSortBy(url.searchParams.get('by')),
@@ -598,8 +674,6 @@ export function PureCLMStats(props) {
   const ctx = new CtxClass(state, setState, urlMk, urlHrefMk);
   ctx.state = state;
 
-  console.log(state.sort)
-
   useEffect(() => {
     if (state.after) {
       state.after().then((ups) => setState({ ...__state, ...ups }))
@@ -607,7 +681,6 @@ export function PureCLMStats(props) {
   }, [state.after])
 
   useEffect(() => {
-    console.log('mounting app entry')
     mkPeriodFuture()
       .then((period) => ctx.mergeState({ period, isLoadingPeriod: false }))
       .catch((error) => ctx.mergeState({ error }))

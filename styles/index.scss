@@ -101,9 +101,37 @@ html #app .container {
     }
 }
 
+.has-background-danger-op-1 {
+    background-color: hsl(var(--bulma-danger-h), var(--bulma-danger-s), var(--bulma-danger-on-scheme-l), 0.05) !important;
+}
+
+.has-background-link-op-1 {
+    background-color: hsl(var(--bulma-link-h), var(--bulma-link-s), var(--bulma-link-on-scheme-l), 0.05) !important;
+}
+
+.has-background-warning-op-1 {
+    background-color: hsl(var(--bulma-warning-h), var(--bulma-warning-s), var(--bulma-warning-on-scheme-l), 0.05) !important;
+}
+
 html #app {
+    .wmax {
+        width: 100% !important;
+    }
+
+    .hmax {
+        width: 100% !important;
+    }
+
+    .pe-none {
+        pointer-events: none !important;
+    }
+
     .rel {
         position: relative !important;
+    }
+
+    .ultra-faint {
+        opacity: 0.90625 !important;
     }
 
     .navbar-item,
@@ -155,6 +183,8 @@ html #app .player-info {
             height: 100%;
             width: 100%;
             object-fit: cover;
+            background-color: var(--bulma-border);
+            color: rgba(0, 0, 0, 0);
         }
     }
 
@@ -185,6 +215,10 @@ html #app .player-info {
     }
 }
 
+.ws-nw {
+    white-space: nowrap !important;
+}
+
 html #app .nowrap {
     white-space: nowrap !important;
     text-overflow: ellipsis !important;
@@ -193,10 +227,15 @@ html #app .nowrap {
 
 html #app table.table {
     table-layout: fixed;
+    min-width: 100%;
     position: relative;
     border-collapse: separate;
     border-spacing: 0;
     background-color: var(--bulma-scheme-main-bis);
+
+    a:hover {
+        text-decoration: underline;
+    }
 
     th {
         position: sticky;
@@ -204,6 +243,7 @@ html #app table.table {
         z-index: 1;
         background-color: var(--bulma-scheme-main-ter);
         border-bottom: 2px solid var(--bulma-border);
+        vertical-align: middle;
 
         .curr-sort {
             transition: opacity 0.5s ease-in-out;
@@ -236,18 +276,19 @@ html #app table.table {
 
     td,
     th {
-        width: 20%;
+        width: 1%;
         white-space: nowrap;
     }
 
     td:nth-child(2),
     th:nth-child(2) {
-        width: 100% !important;
+        width: auto !important;
+        min-width: 20rem;
     }
 
     td:first-child {
-        max-width: 5rem;
-        min-width: 5rem;
+        /* max-width: 5rem;
+        min-width: 5rem; */
         position: relative;
 
         >div {
@@ -263,9 +304,12 @@ html #app table.table {
     }
 
     td:last-child {
+        /*
         position: relative;
         min-width: 16rem;
+        */
 
+        /*
         >div {
             position: absolute;
             top: 0;
@@ -273,6 +317,7 @@ html #app table.table {
             width: calc(100% - 1.5rem);
             height: 100%;
         }
+            */
 
         a:hover {
             text-decoration: underline;
