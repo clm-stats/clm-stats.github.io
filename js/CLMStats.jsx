@@ -624,7 +624,7 @@ export function PureCLMStats(props) {
 }
 
 export default function CLMStats() {
-  function U() {
+  function Uval() {
     const urlHrefMk = () => window.location.href;
     function mkPeriodFuture() {
       return window.periodFuture;
@@ -639,5 +639,5 @@ export default function CLMStats() {
     }
     return { urlHrefMk, urlMk, mkPeriodFuture }
   }
-  return <PureCLMStats U={U} />
+  return <PureCLMStats U={Uval} />
 }
