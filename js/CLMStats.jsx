@@ -12,12 +12,43 @@ function cnActive(b) { return b ? cnActiveTrue : cnActiveFalse }
 
 class CtxClass {
 
-  constructor(state, setState, urlMk) {
+  constructor(state, setState, urlMk, urlHrefMk) {
     this.state = state;
     this.setState = setState;
     this.urlMk = urlMk;
+    this.urlHrefMk = urlHrefMk;
+    this.sorts = {};
   }
 
+  getSortedImpl() {
+    console.log(this.sortKey);
+    console.log(this.sort.by, this.sort.dir)
+    const { events, ranks } = this.state.period;
+    const res = [...ranks];
+    const sortFn = (({
+      ord: (r1, r2) => r1.rank - r2.rank,
+      name: (r1, r2) => r1.playerIdent > r2.playerIdent ? 1 : -1,
+      qual: (r1, r2) => r2.rank - r1.rank,
+      acc: (r1, r2) => r1.winrate - r2.winrate,
+      att: (r1, r2) => r1.prEvents - r2.prEvents,
+      mru: (r1, r2) => events[r1.eventId].date - events[r2.eventId].date,
+    })[this.sort.by]);
+    res.sort(sortFn);
+    if (this.sort.dir !== 'asc') {
+      res.reverse();
+    }
+    return res;
+  }
+  get sorted() {
+    return (this.sorts[this.sortKey] ||= this.getSortedImpl())
+  }
+  get isInitialSortDir() {
+    return this.sort.dir === U.getDefaultDir(this.sort.by);
+  }
+  get sort() { return this.state.sort || {}; }
+  get sortKey() {
+    return `${this.sort.by}|${this.sort.dir}`;
+  }
   get isLoadingPeriod() { return this.state.isLoadingPeriod; }
   get href() { return this.state.href; }
   get page() { return U.resolvePageStr(this.state.page); }
@@ -38,6 +69,10 @@ class CtxClass {
   toggleHamburger() { this.mergeState({ isHamburgerOpen: !this.isHamburgerOpen }); }
 
   mergeState(props) {
+    console.log('merging....', props);
+    if (props.period && props.period !== this.state.period) {
+      this.sorts = {};
+    }
     this.setState({ ...this.state, ...props })
   }
 
@@ -50,10 +85,50 @@ class CtxClass {
     return this.urlMk({ season: this.season, page });
   }
 
+  hSort(by, dir) {
+    const sort = { by, dir };
+    return this.urlMk({ season: this.season, page: this.page, sort });
+  }
+
   character(playerIdent) {
     const { players } = this.state.period;
     const player = players[playerIdent] || {};
     return U.lkupChar(player.name);
+  }
+
+  onHref(href) {
+    if (href !== window.location.href) {
+      console.log('push window history');
+      window.history.pushState({}, null, href);
+      console.log('pushed');
+      const urlHref = this.urlHrefMk();
+      const url = new URL(urlHref);
+      const hrefPath = url.pathname;
+      console.log({ urlHref, url, hrefPath })
+      const parts = (/^\/([a-z0-9_\-]+)\/([a-z0-9]+)(\.html)?$/).exec(hrefPath.toLowerCase());
+      const periodId = U.resolveSeasonStr((parts || [])[1]);
+      const page = U.resolvePageStr((parts || [])[2]);
+      const isLoadingPeriod = periodId !== this.state.periodId;
+      const period = isLoadingPeriod ? null : this.state.period;
+      const sort = {
+        dir: U.resolveSortDir(url.searchParams.get('dir')),
+        by: U.resolveSortBy(url.searchParams.get('by')),
+      };
+      async function after() {
+        if (!isLoadingPeriod) { return {} }
+        try {
+          const res = await fetch(`/db/periods/${periodId}.json`);
+          const period = await res.json();
+          return { period, isLoadingPeriod: false };
+        } catch (error) {
+          return { error };
+        }
+      }
+      const newState = (
+        { periodId, page, href: urlHref, period, isLoadingPeriod, sort, after }
+      );
+      this.mergeState(newState);
+    }
   }
 }
 
@@ -63,12 +138,24 @@ function useCtx() {
   return useContext(Ctx);
 }
 
+function Link(props) {
+  const X = useCtx();
+  function onClick(e) {
+    e.preventDefault();
+    X.onHref(props.href);
+  }
+  return (
+    <a {...props} onClick={onClick} />
+  );
+}
+
+
 function NavBarLink({ href, children, iht = false, ia = false }) {
   const className = cn('navbar-item', { 'is-hidden-touch navbar-item': iht, 'is-selected': ia });
   return (
-    <a role='button' className={className} href={href} >
+    <Link role='button' className={className} href={href} >
       {children}
-    </a>
+    </Link>
   );
 }
 
@@ -179,17 +266,45 @@ function Periods() {
       <div className="dropdown-menu" id="dropdown-menu4" role="menu">
         <div className="dropdown-content">
           {U.timeline.periods.map(({ periodId, title }) => (
-            <a
+            <Link
               key={periodId}
               href={X.hPeriod(periodId)}
               className={cn('dropdown-item', { 'is-active': periodId === X.periodId })}
             >
               {title}
-            </a>
+            </Link>
           ))}
         </div>
       </div>
     </div>
+  );
+}
+
+function THCell({ className, by, text }) {
+  const X = useCtx();
+  const isAsc = X.sort.dir === 'asc';
+  const isActive = X.sort.by === by;
+  const sym = !isActive ? '' : (
+    isAsc ? '' : ''
+  )
+  const nextDir = !isActive ? U.getDefaultDir(by) : (isAsc ? 'desc' : 'asc');
+  return (
+    <th className={className || ''}>
+      <Link
+        className={cn('has-text-strong', { 'is-underlined': isActive })}
+        href={X.hSort(by, nextDir)}
+      >
+        {text}&nbsp;
+        <span className='rel'>
+          <span className='curr-sort'>
+            {NF(sym)}
+          </span>
+          <span className='next-sort is-overlay is-flex'>
+            {NF(nextDir === 'asc' ? '' : '')}
+          </span>
+        </span>
+      </Link>
+    </th>
   );
 }
 
@@ -236,59 +351,126 @@ function MenuBar() {
   )
 }
 
+const defaultProfileImage = '/img/CLM_Logo_Avatar_Placeholder.png';
+
+function ProfileImage(props) {
+  const [hasError, setHasError] = useState(false);
+  const className = cn(props.className || '', { defaultProfile: hasError });
+  const src = hasError ? defaultProfileImage : props.src;
+  function onError() { if (!hasError) { setHasError(true); } }
+  return (
+    <img {...props} className={className} src={src} onError={onError} />
+  );
+}
+
+function PureRow(props) {
+  return (
+    <tr>
+      <td
+        className='has-text-weight-extrabold is-size-3 has-text-centered'
+      >
+        <div>
+          {props.ord}
+        </div>
+      </td>
+      <td>
+        <Link
+          href={props.href}
+          className='is-flex is-flex-direction-row is-align-items-center player-info'
+        >
+          <div >
+            {props.profileImage}
+          </div>
+          <div className='is-flex is-flex-direction-column'>
+            <div className='no_wrap has-text-weight-bold is-size-5'>{props.name}</div>
+            {!props.pronouns ? null : (
+              <div
+                className='no_wrap is-size-7'
+              >
+                {props.pronouns}
+              </div>
+            )}
+            {props.character}
+          </div>
+        </Link>
+      </td>
+      <td className='py-5 nowrap has-text-centered'>{props.qual}</td>
+      <td className='nowrap has-text-centered'>{props.acc}</td>
+      <td className='nowrap has-text-centered'>{props.att}</td>
+      <td className=''>
+        <div className='is-flex is-flex-direction-column is-justify-content-center'>
+          {props.mruLink}
+          <div className='nowrap'>
+            {props.mruPlacing}
+          </div>
+          <div className='nowrap has-text-weak'>
+            {props.mruDate}
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 function StatsTable() {
   const X = useCtx();
 
   const skelEl = (
-    <tr>
-      <td>
-        <h2 className='subtitle is-skeleton' >1</h2>
-      </td>
-      <td className='is-flex is-flex-direction-row'>
-        <span className='icon is-skeleton' >1</span>
-        <div className='mx-2' />
-        <div className='skeleton-lines is-flex-grow-1'> <div /><div /> </div>
-      </td>
-      <td>
-        <div className='skeleton-lines is-flex-grow-1'> <div /> </div>
-      </td>
-      <td>
-        <div className='skeleton-lines is-flex-grow-1'> <div /> </div>
-      </td>
-      <td>
-        <div className='skeleton-lines is-flex-grow-1'> <div /> </div>
-      </td>
-      <td>
-        <div className='skeleton-lines is-flex-grow-1'> <div /> <div /> </div>
-      </td>
-    </tr>
+    <PureRow
+      ord={(<button className='button is-skeleton' />)}
+      profileImage={(<div className='skeleton-block' />)}
+      name={(<div className='skeleton-lines'><div /></div>)}
+      pronouns={<span className='tag is-skeleton'>pronouns</span>}
+      character={<span className='icon is-skeleton'>c</span>}
+      qual={(<div className='skeleton-lines'><div /></div>)}
+      acc={(<div className='skeleton-lines'><div /></div>)}
+      att={(<div className='skeleton-lines'><div /></div>)}
+      mruLink={(<div className='skeleton-lines'><div /></div>)}
+      mruPlacing={<span className='tag is-skeleton'>placing</span>}
+      mruDate={<span className='tag is-skeleton'>date</span>}
+    />
   );
+
   const skel = (
-    <tbody>{skelEl}{skelEl}{skelEl}{skelEl}{skelEl}{skelEl}{skelEl}</tbody>
+    <tbody>
+      {skelEl}{skelEl}{skelEl}{skelEl}{skelEl}{skelEl}{skelEl}
+      {skelEl}{skelEl}{skelEl}{skelEl}{skelEl}{skelEl}{skelEl}
+      {skelEl}{skelEl}{skelEl}{skelEl}{skelEl}{skelEl}{skelEl}
+    </tbody>
   )
 
   const el = (X.isLoadingPeriod ? (() => skel) : (() => {
-    const { players, ranks, events } = X.state.period;
-    const rows = ranks.map((rank) => {
+    const { players, events } = X.state.period;
+    const filtered = X.sorted.filter(rank => U.inRegion(rank.playerIdent));
+    const rows = filtered.map((rank, nth) => {
       const player = players[rank.playerIdent];
       const character = X.character(rank.playerIdent);
       const event = events[rank.eventId]
+      const eventDate = new Date(event.date * 1000);
+
+      const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+      const dstr = new Intl.DateTimeFormat('en-US', options).format(eventDate);
+      const defaultProfile = (
+        player.image === defaultProfileImage
+      );
+
       return (
         <tr key={rank.playerIdent} >
           <td
             className='has-text-weight-extrabold is-size-3 has-text-centered'
           >
-            <div> {rank.rank || '-'} </div>
+            <div>
+              {X.isInitialSortDir ? (nth + 1) : (filtered.length - nth)}
+            </div>
           </td>
           <td>
             <a className='is-flex is-flex-direction-row is-align-items-center player-info' href="#">
-              <div
-                href='#'
-              >
-                <img
+              <div >
+                <ProfileImage
                   src={player.image}
+                  className={cn({ defaultProfile })}
                   loading="lazy"
-                  alt='profile pic'
+                  alt='start.gg profile image'
                 />
               </div>
               <div className='is-flex is-flex-direction-column'>
@@ -323,8 +505,8 @@ function StatsTable() {
               <div className='nowrap'>
                 {rank.placingString} of {event.numEntrants}
               </div>
-              <div className='nowrap'>
-                date
+              <div className='nowrap has-text-weak'>
+                {dstr}
               </div>
             </div>
           </td>
@@ -355,16 +537,12 @@ function StatsTable() {
         >
           <thead>
             <tr>
-              <th className='has-text-centered'>
-                <a href="#">
-                  #&nbsp;{NF('')}
-                </a>
-              </th>
-              <th>Player</th>
-              <th className='has-text-centered'>Elo</th>
-              <th className='has-text-centered'>W-L</th>
-              <th className='has-text-centered'>PR Events</th>
-              <th>Last Event</th>
+              <th className='has-text-centered'> # </th>
+              <THCell by="name" text="Player" />
+              <THCell className='has-text-centered' by="qual" text="Rating" />
+              <THCell className='has-text-centered' by="acc" text="W - L" />
+              <THCell className='has-text-centered' by="att" text="PR Events" />
+              <THCell by="mru" text="Last Event" />
             </tr>
           </thead>
           {el}
@@ -385,42 +563,55 @@ function Body() {
   )
 }
 
+let __state;
+let initialState;
 export function PureCLMStats(props) {
-  const { urlHref, urlMk, mkPeriodFuture } = props.U();
-  const hrefPath = (new URL(urlHref)).pathname;
-  const parts = (/^\/([a-z0-9_\-]+)\/([a-z0-9]+)(\.html)?$/).exec(hrefPath.toLowerCase());
-  const urlPeriod = U.resolveSeasonStr((parts || [])[1]);
-  const urlPage = U.resolvePageStr((parts || [])[2]);
-  // const urlPeriod, urlPage, 
-  pageLoadData.page = urlPage;
-  pageLoadData.periodId = urlPeriod;
-  pageLoadData.href = urlHref;
-  pageLoadData.isLoadingPeriod = true;
-  const [state, setState] = useState({ ...pageLoadData });
+  const { urlHrefMk, urlMk, mkPeriodFuture } = props.U();
+  if (!pageLoadData.isDone) {
+    console.log('doing this shit!')
+    const urlHref_ = urlHrefMk();
+    const url = new URL(urlHref_);
+    const hrefPath = url.pathname;
+    const parts = (/^\/([a-z0-9_\-]+)\/([a-z0-9]+)(\.html)?$/).exec(hrefPath.toLowerCase());
+    const urlPeriod = U.resolveSeasonStr((parts || [])[1]);
+    const urlPage = U.resolvePageStr((parts || [])[2]);
+    // const urlPeriod, urlPage, 
+    pageLoadData.page = urlPage;
+    pageLoadData.periodId = urlPeriod;
+    pageLoadData.href = urlHref_;
+    pageLoadData.isLoadingPeriod = true;
+    console.log(url.searchParams)
+    pageLoadData.sort = {
+      dir: U.resolveSortDir(url.searchParams.get('dir')),
+      by: U.resolveSortBy(url.searchParams.get('by')),
+    };
+    initialState = { ...pageLoadData }
+    pageLoadData.isDone = true;
+  }
 
-  const ctx = new CtxClass(state, setState, urlMk);
+  const [state, _setState] = useState(initialState);
+  function setState(newState) {
+    __state = newState;
+    _setState(newState);
+  }
+
+  const ctx = new CtxClass(state, setState, urlMk, urlHrefMk);
+  ctx.state = state;
+
+  console.log(state.sort)
 
   useEffect(() => {
+    if (state.after) {
+      state.after().then((ups) => setState({ ...__state, ...ups }))
+    }
+  }, [state.after])
+
+  useEffect(() => {
+    console.log('mounting app entry')
     mkPeriodFuture()
       .then((period) => ctx.mergeState({ period, isLoadingPeriod: false }))
       .catch((error) => ctx.mergeState({ error }))
   }, [])
-
-  useEffect(() => {
-    if (urlPeriod !== ctx.periodId) {
-      ctx.mergeState({ periodId: urlPeriod })
-    }
-  }, [urlPeriod]);
-  useEffect(() => {
-    if (urlPage !== ctx.page) {
-      ctx.mergeState({ page: urlPage })
-    }
-  }, [urlPage]);
-  useEffect(() => {
-    if (urlHref !== ctx.href) {
-      ctx.mergeState({ href: urlHref })
-    }
-  }, [urlHref])
 
   return (
     <Ctx.Provider value={ctx}>
@@ -434,16 +625,19 @@ export function PureCLMStats(props) {
 
 export default function CLMStats() {
   function U() {
-    const urlHref = window.location.href;
+    const urlHrefMk = () => window.location.href;
     function mkPeriodFuture() {
       return window.periodFuture;
     }
-    function urlMk({ season, page } = {}) {
-      if (!season) { return '/'; }
-      if (!page) { return `/${season}`; }
-      return `/${season}/${page}`;
+    function urlMk({ season, page, sort = {} } = {}) {
+      const base = ((() => {
+        if (!season) { return '/'; }
+        if (!page) { return `/${season}`; }
+        return `/${season}/${page}`;
+      })());
+      return base + U.mkQs(U.resolveSort(sort));
     }
-    return { urlHref, urlMk, mkPeriodFuture }
+    return { urlHrefMk, urlMk, mkPeriodFuture }
   }
   return <PureCLMStats U={U} />
 }

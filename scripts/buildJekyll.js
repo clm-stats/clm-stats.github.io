@@ -10,15 +10,20 @@ const baseHtml = fs.readFileSync('./docs/index.html', 'utf-8');
 fs.rmSync('./docs/index.html');
 
 function mkLayout(urlSeason, urlPage) {
-    const urlHref = `http://localhost:8080/${urlSeason}/${urlPage}.html`;
-    function urlMk({ season, page } = {}) {
-        if (!season) { return '/'; }
-        if (!page) { return `/${season}`; }
-        return `/${season}/${page}`;
+    const urlHrefMk = (
+        () => `http://localhost:8080/${urlSeason}/${urlPage}.html`
+    );
+    function urlMk({ season, page, sort } = {}) {
+        const base = ((() => {
+            if (!season) { return '/'; }
+            if (!page) { return `/${season}`; }
+            return `/${season}/${page}`;
+        })());
+        return base + U.mkQs(U.resolveSort(sort));
     }
     function mkPeriodFuture() { return new Promise(); }
-    const U = () => ({ urlHref, urlMk, mkPeriodFuture });
-    const appStr = render(h(PureCLMStats, { U }));
+    const UVal = () => ({ urlHrefMk, urlMk, mkPeriodFuture });
+    const appStr = render(h(PureCLMStats, { U: UVal }));
     const html = baseHtml.replace('__PRERENDER__', appStr);
     return html;
 }

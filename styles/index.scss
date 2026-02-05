@@ -117,6 +117,14 @@ html #app {
         padding-bottom: 0 !important;
         padding-top: calc(var(--bulma-navbar-height) + 2px) !important;
     }
+
+    .has-text-weak {
+        color: var(--bulma-text-weak) !important;
+    }
+
+    .has-text-strong {
+        color: var(--bulma-text-strong) !important;
+    }
 }
 
 html #app tr td {
@@ -196,6 +204,34 @@ html #app table.table {
         z-index: 1;
         background-color: var(--bulma-scheme-main-ter);
         border-bottom: 2px solid var(--bulma-border);
+
+        .curr-sort {
+            transition: opacity 0.5s ease-in-out;
+            opacity: 1.0;
+        }
+
+        .next-sort {
+            transition: opacity 0.5s ease-in-out;
+            opacity: 0.0;
+        }
+
+        a:hover {
+            color: var(--bulma-link) !important;
+            text-decoration: underline;
+
+            .curr-sort {
+                opacity: 0.5;
+                color: var(--bulma-text-weak) !important;
+
+                .mono {
+                    color: var(--bulma-text-weak) !important;
+                }
+            }
+
+            .next-sort {
+                opacity: 1.0;
+            }
+        }
     }
 
     td,
@@ -206,7 +242,7 @@ html #app table.table {
 
     td:nth-child(2),
     th:nth-child(2) {
-        width: auto !important;
+        width: 100% !important;
     }
 
     td:first-child {
@@ -237,6 +273,10 @@ html #app table.table {
             width: calc(100% - 1.5rem);
             height: 100%;
         }
+
+        a:hover {
+            text-decoration: underline;
+        }
     }
 
     /*
@@ -259,5 +299,11 @@ html #app table.table {
 
     th:last-child {
         position: sticky;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    img.defaultProfile {
+        filter: brightness(55%) contrast(1000%);
     }
 }

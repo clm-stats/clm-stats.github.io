@@ -17,6 +17,28 @@ for (const period of timeline.periods) {
     SEASON_BY_PERIOD_ID[period.periodId] = period.season;
 }
 
+const SORT_BYS = new Set(['ord', 'name', 'qual', 'acc', 'att', 'mru']);
+const defaultSortBy = 'qual';
+export function resolveSortBy(str) {
+    return SORT_BYS.has(str) ? str : defaultSortBy;
+}
+export function getDefaultDir(by) {
+    return (({
+        ord: 'asc',
+        name: 'asc',
+        qual: 'desc',
+        acc: 'desc',
+        att: 'desc',
+        mru: 'desc',
+    })[resolveSortBy(by)]);
+}
+
+const SORT_DIRS = new Set(['asc', 'desc']);
+const defaultSortDir = 'desc';
+export function resolveSortDir(str) {
+    return SORT_DIRS.has(str) ? str : defaultSortDir;
+}
+
 export function resolveSeasonStr(str) {
     return PERIOD_ID_BY_SEASON[str] || timeline.current;
 }
@@ -82,6 +104,37 @@ const PLAYER_DATA = {
     "Jackie": { "character": "GANONDORF", "lastRank": 10 }
 }
 
+const OUT_OF_REGION = new Set([
+    "Zamu", "macdaddy69", "Sp1nda", "essy", "Slowking", "Will Pickles",
+    "kate wisconsin", "Preeminent", "Olivia :3", "Smash Papi",
+    "Lowercase hero", "Nakamaman", "Chango", "Moe", "DannyPhantom", "Ginger",
+    "AbsentPage", "Ben", "KJH", "Drephen", "Morsecode762", "Fraggin&Laggin",
+    "PRZ", "Grab2Win", "MOF", "Wevans", "max", "Epoodle", "lexor", "Seal",
+]);
+
+export function inRegion(player) {
+    return !OUT_OF_REGION.has(player);
+}
+
 export function lkupChar(player) {
     return (PLAYER_DATA[player] || {}).character;
+}
+
+export function mkQs(props, intoQs) {
+    let qs = intoQs || "";
+    function qsAdd(k, v) {
+        const c1 = !qs ? '?' : '&';
+        qs = `${qs}${c1}${k}=${v}`;
+    }
+    for (const k in props) { qsAdd(k, props[k]); }
+    return qs;
+}
+
+export function resolveSort(sortIn = {}) {
+    const sort = {}
+    sort.dir = resolveSortDir(sortIn.dir);
+    sort.by = resolveSortBy(sortIn.by);
+    if (sort.dir === resolveSortDir()) { delete sort.dir; }
+    if (sort.by === resolveSortBy()) { delete sort.by; }
+    return sort;
 }
