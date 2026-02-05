@@ -255,7 +255,7 @@ function ResetTable() {
     } else if (chType === 'sort-dir') {
       return X.hSort(U.resolveSortBy(), U.resolveSortDir());
     } else if (chType === 'sort-by') {
-      return X.hSort(this.sort.by, this.sort.dir === 'asc' ? 'desc' : 'asc');
+      return X.hSort(X.sort.by, X.sort.dir === 'asc' ? 'desc' : 'asc');
     }
   }
   function chColor([chType, chParam]) {
