@@ -779,7 +779,13 @@ function Body() {
   return (
     <div className='section p-0 is-flex-grow-1 is-flex is-flex-direction-column'>
       <div className='container is-flex-grow-1 is-flex is-flex-direction-column'>
-        <StatsTable />
+        {(X.page === 'stats' ? (<StatsTable />) : (
+          <div
+            style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center' }}
+          >
+            not here yet
+          </div>
+        ))}
       </div>
     </div>
   )
