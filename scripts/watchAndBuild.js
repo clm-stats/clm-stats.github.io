@@ -5,7 +5,12 @@ let timeoutId
 
 async function trueRunBuild() {
   timeoutId = undefined;
-  await execa('just', ['build'], { stdout: ['pipe', 'inherit'], stderr: ['pipe', 'inherit'] });
+  try {
+    await execa('just', ['build'], { stdout: ['pipe', 'inherit'], stderr: ['pipe', 'inherit'] });
+  } catch(e) {
+    console.error('BUILD ERROR!');
+    console.error(e);
+  }
 }
 
 function runBuild() {
