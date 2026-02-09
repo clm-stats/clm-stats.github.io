@@ -1,4 +1,7 @@
+import timeline from './timeline.json';
+
 document.addEventListener('alpine:init', () => {
+  console.log({ timeline });
   Alpine.store('S', {
     init() {
       this.isLoading = true;

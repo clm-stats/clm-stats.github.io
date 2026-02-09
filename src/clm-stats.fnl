@@ -127,7 +127,7 @@
        (title "{{ page.title }}")
        (link [:rel :stylesheet] [:href "/index.css"])
        (script "window.periodId = {{ page.periodId }};"
-               (&! slurp "./js/index.js"))
+               (&! slurp "./docs/index.js"))
        (script [:src htmx-src] [:integrity htmx-integrity]
                [:crossorigin :anonymous])
        (script [:defer true] [:src alpine-src]))

@@ -15,7 +15,8 @@
   "type": "commonjs",
   "scripts": {
     "dev:watchAndBuild": "node scripts/watchAndBuild.js",
-    "build:css": "tailwindcss -i styles/index.css -m -o docs/index.css"
+    "build:css": "tailwindcss -i styles/index.css -m -o docs/index.css",
+    "build:js": "parcel build --target web js/index.js"
   },
   "devDependencies": {
     "@parcel/transformer-sass": "^2.16.4",
