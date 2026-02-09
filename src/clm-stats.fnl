@@ -83,6 +83,9 @@
      (tset (. Icon i) s [(mk-icon i cn)])
      (tset (. Icon i s) :cn #(mk-icon i (.. $1 " " cn)))))
 
+ (fn slurp [p]
+   (with-open [f (io.open p :r)] (f:read "*all")))
+
  (fn spit [p s]
    (with-open [f (io.open p :w)]
      (f:write s)))
@@ -123,14 +126,14 @@
        (meta [:name :viewport] [:content "width=device-width, initial-scale=1"])
        (title "{{ page.title }}")
        (link [:rel :stylesheet] [:href "/index.css"])
+       (script "window.periodId = {{ page.periodId }};"
+               (&! slurp "./js/index.js"))
        (script [:src htmx-src] [:integrity htmx-integrity]
                [:crossorigin :anonymous])
        (script [:defer true] [:src alpine-src]))
      (body [:class "min-h-screen bg-info dark:bg-info-content"]
-       (div [:x-data
-             "{period:null,isLoading:true,async init() { this.isLoading=true;this.period=await (await fetch('/db/periods/2.json')).json();this.isLoading=false;}}"]
-         [:class
-          "container rounded-none min-h-screen mx-auto px-0 card bg-base-100 shadow-xl m-4 my-0"]
+       (div [:class
+             "container rounded-none min-h-screen mx-auto px-0 card bg-base-100 shadow-xl m-4 my-0"]
          (div [:class "flex flex-col self-stretch sticky top-0"]
            (div [:class "navbar p-2 min-h-auto bg-base-200 shadow-sm"]
              (div [:class "navbar-start gap-4"]

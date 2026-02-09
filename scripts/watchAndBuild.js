@@ -23,7 +23,7 @@ function runBuild() {
   }
 }
 
-const watcher = new Watcher(['./src', './styles']);
+const watcher = new Watcher(['./src', './styles', './js']);
 watcher.on('all', runBuild);
 
 runBuild();
