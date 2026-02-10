@@ -9,6 +9,9 @@ dev-serve:
 dev: dev-build dev-serve
 
 build:
+  npm run clean
   npm run build:js
-  fennel src/clm-stats.fnl
+  npm run build:builder
+  npm run build:cleaner
+  npm run build:jekyll
   npm run build:css

@@ -1,17 +1,6 @@
-import timeline from './timeline.json';
+import { render, h } from 'preact';
+import App from './App';
 
-document.addEventListener('alpine:init', () => {
-  console.log({ timeline });
-  Alpine.store('S', {
-    init() {
-      this.isLoading = true;
-      fetch('/db/periods/9.json')
-        .then(res => res.json())
-        .then(period => { this.period = period; this.isLoading = false; })
-        .catch(error => { this.error = error; });
-    },
-    isLoading: true,
-    period: null,
-    error: null,
-  });
+document.addEventListener("DOMContentLoaded", function () {
+    render(h(App, {}), document.body);
 });

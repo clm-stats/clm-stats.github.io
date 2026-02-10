@@ -14,12 +14,17 @@
   "author": "",
   "type": "commonjs",
   "scripts": {
+    "clean": "rimraf dist",
     "dev:watchAndBuild": "node scripts/watchAndBuild.js",
     "build:css": "tailwindcss -i styles/index.css -m -o docs/index.css",
+    "build:builder": "parcel build --target node scripts/buildJekyll.js",
+    "build:cleaner": "node scripts/buildCleaner.js",
+    "build:jekyll": "node dist/buildJekyll.js",
     "build:js": "parcel build --target web js/index.js"
   },
   "devDependencies": {
     "@parcel/transformer-sass": "^2.16.4",
+    "@preact/signals": "^2.7.1",
     "@tailwindcss/cli": "^4.1.18",
     "alpinejs": "^3.15.8",
     "bulma": "^1.0.4",

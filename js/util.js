@@ -10,11 +10,13 @@ const PERIODS = {}
 
 const PERIOD_ID_BY_SEASON = {}
 const SEASON_BY_PERIOD_ID = {}
+const TITLE_BY_PERIOD_ID = {}
 
 for (const period of timeline.periods) {
     PERIODS[period.periodId] = period;
     PERIOD_ID_BY_SEASON[period.season] = period.periodId;
     SEASON_BY_PERIOD_ID[period.periodId] = period.season;
+    TITLE_BY_PERIOD_ID[period.periodId] = period.title;
 }
 
 const SORT_BYS = new Set(['ord', 'name', 'qual', 'acc', 'att', 'mru']);
@@ -53,6 +55,10 @@ export function resolvePageStr(str) {
 
 export function getSeason(periodId) {
     return SEASON_BY_PERIOD_ID[periodId] || SEASON_BY_PERIOD_ID[timeline.current];
+}
+
+export function getTitle(periodId) {
+    return TITLE_BY_PERIOD_ID[periodId] || TITLE_BY_PERIOD_ID[timeline.current];
 }
 
 export function getPeriodId(season) {
