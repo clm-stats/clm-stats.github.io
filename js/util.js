@@ -155,11 +155,12 @@ export function resolveSort(sortIn = {}) {
 const filterKeys = ['outOfRegion', 'inadAttendance'];
 
 const defaultFilterVals = {
-    outOfRegion: false,
+    outOfRegion: true,
     inadAttendance: false,
 };
 
 export function resolveFilter(str) {
+    console.log({ str });
     let i = parseInt(str);
     i = Number.isNaN(i) ? 0 : i;
     const res = {};
@@ -178,7 +179,15 @@ export function asSearchParams(filter = {}) {
         res *= 2;
         res += filter[k] !== !defaultFilterVals[k] ? 0 : 1
     }
-    return res ? { filter: `${res}` } : {};
+    return { filter: `${res}` };
+}
+
+export function getDefaultFilterStr(periodId) {
+    const filter = {
+        outOfRegion: true,
+        inadAttendance: periodId !== timeline.current,
+    };
+    return asSearchParams(filter).filter;
 }
 
 export function addedFilters(str) {

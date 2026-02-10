@@ -50,7 +50,17 @@ const mkHtml = (appMarkup) => (`
 `).trim();
 
 function mkLayout(periodId, page) {
-    return mkHtml(render(h(PureApp, { periodId, page, isLoading: true })));
+    const props = {
+        periodId,
+        page,
+        isLoading: true,
+        sort: { by: U.resolveSortBy(), dir: U.resolveSortDir() },
+        filter: {
+            outOfRegion: true,
+            inadAttendance: periodId !== U.timeline.current,
+        },
+    };
+    return mkHtml(render(h(PureApp, props)));
 }
 
 mkdirp.sync('./docs/_layouts/');
