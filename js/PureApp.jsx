@@ -220,14 +220,14 @@ export default function PureApp(props) {
     function tbRow(args) {
       return tableRow('h-25 border-b-1 border-gray-300 dark:border-gray-700 rounded-none ' + args.cn || '', args.key)(
         (<div className='font-extrabold text-4xl'>{args.ord}</div>),
-        ((body => args.playerHref ? (<a href={args.playerHref} className='group flex items-center justify-start'>{body}</a>) : (<div className='flex items-center justify-start'>{body}</div>))(
+        ((body => args.playerHref ? (<a href={args.playerHref} className='group flex items-center justify-start flex-1'>{body}</a>) : (<div className='flex items-center justify-start flex-1'>{body}</div>))(
           <>
             <div className='w-2' />
-            <div className='h-13 w-13 rounded-full overflow-hidden shadow-md'>
+            <div className='h-13 w-13 rounded-full overflow-hidden shadow-md group-hover:shadow-primary'>
               {args.profileImage}
             </div>
             <div className='w-4' />
-            <div className='flex flex-col justify-center'>
+            <div className='flex flex-col justify-center flex-1 relative overflow-hidden'>
               <div className='whitespace-nowrap text-xl font-bold text-primary group-hover:underline'>
                 {args.name}
               </div>
