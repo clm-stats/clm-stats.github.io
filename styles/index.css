@@ -1,13 +1,15 @@
 @import "tailwindcss";
+@import "tailwindcss-animated";
 @plugin "daisyui";
 
 @custom-variant dark {
     &:where([data-theme='dark'], [data-theme='dark'] *) {
-          @slot;
+        @slot;
     }
+
     @media (prefers-color-scheme: dark) {
-          &:where(:not([data-theme] *)) {
-              @slot;
-          }
+        &:where(:not([data-theme] *)) {
+            @slot;
+        }
     }
 }

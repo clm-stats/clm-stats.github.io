@@ -33,16 +33,16 @@ function cleanPeriod(period) {
 export default class App extends Component {
   constructor(props) {
     super(props);
-    this.state = { ...getUrlState(), isLoading: true };
+    this.state = { prevState: {}, ...getUrlState(), isLoading: true };
   }
 
   fetchPeriod(fetchedId = this.state.periodId, plusState = {}) {
     if (this.state.fetchedId === fetchedId) { this.modState(plusState); return; }
-    this.modState({ ...plusState, isLoading: true, period: undefined });
+    this.modState({ ...plusState, isLoading: true, period: undefined, fetchedId: undefined });
     window.fetchPeriod(fetchedId)
       .then(cleanPeriod)
-      .then(period => this.setState({ period, isLoading: false, fetchedId }))
-      .catch(error => this.setState({ error }))
+      .then(period => this.modState({ period, isLoading: false, fetchedId }))
+      .catch(error => this.modState({ error }))
   }
 
   isStateSubset(nextState) {
@@ -54,6 +54,7 @@ export default class App extends Component {
 
   modState(nextState) {
     if (this.isStateSubset(nextState)) { return; }
+    nextState.prevState = this.state;
     this.setState(nextState);
   }
 

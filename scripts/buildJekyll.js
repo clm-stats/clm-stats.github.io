@@ -59,6 +59,7 @@ function mkLayout(periodId, page) {
             outOfRegion: true,
             inadAttendance: periodId !== U.timeline.current,
         },
+        prevState: {},
     };
     return mkHtml(render(h(PureApp, props)));
 }

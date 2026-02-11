@@ -37,12 +37,13 @@ class ProfileImage extends Component {
 
 export default function PureApp(props) {
 
-  const { page, periodId, isLoading, period, error, sort, filter } = props;
+  const { page, periodId, isLoading, period, error, sort, filter, fetchedId, prevState } = props;
   const season = U.getSeason(periodId);
   const title = U.getTitle(periodId);
   const isDefaultSortDir = sort.dir === U.getDefaultDir(sort.by);
   const isAscSort = sort.dir === 'asc';
   const opDir = isAscSort ? 'desc' : 'asc';
+  const wasFetched = fetchedId === prevState.fetchedId;
 
   const players = (period || {}).players || {};
   const events = (period || {}).events || {};
@@ -217,7 +218,7 @@ export default function PureApp(props) {
 
   function statsPage() {
     function tbRow(args) {
-      return tableRow('h-25 border-b-1 border-gray-300 dark:border-gray-700 rounded-none', args.key)(
+      return tableRow('h-25 border-b-1 border-gray-300 dark:border-gray-700 rounded-none ' + args.cn || '', args.key)(
         (<div className='font-extrabold text-4xl'>{args.ord}</div>),
         ((body => args.playerHref ? (<a href={args.playerHref} className='group flex items-center justify-start'>{body}</a>) : (<div className='flex items-center justify-start'>{body}</div>))(
           <>
@@ -291,6 +292,7 @@ export default function PureApp(props) {
         ) : (
           displayRanks.map((rank, ind) => tbRow({
             key: rank.playerIdent,
+            wasFetched,
             ord: (
               isDefaultSortDir ? (ind + 1) : (displayRanks.length - ind)
             ),

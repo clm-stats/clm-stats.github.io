@@ -43,6 +43,8 @@
     "rimraf": "^6.1.2",
     "sass": "^1.97.3",
     "tailwindcss": "^4.1.18",
+    "tailwindcss-animate": "^1.0.7",
+    "tailwindcss-animated": "^2.0.0",
     "watcher": "^2.3.1"
   },
   "staticFiles": {
