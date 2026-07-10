@@ -1,3 +1,3 @@
 ---
-layout: l_14_compare
+layout: l_15_compare
 ---
