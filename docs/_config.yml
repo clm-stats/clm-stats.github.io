@@ -1,4 +1,0 @@
-collections:
-  db:
-    output: true
-    permalink: /db/_/:path
