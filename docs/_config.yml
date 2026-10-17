@@ -1,0 +1,4 @@
+collections:
+  db:
+    output: true
+    permalink: /db/ab976a6f1/:path
