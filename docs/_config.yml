@@ -1,4 +1,4 @@
 collections:
   db:
     output: true
-    permalink: /db/adf2958e8/:path
+    permalink: /db/_/:path
